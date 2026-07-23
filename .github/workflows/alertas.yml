@@ -1,0 +1,28 @@
+name: Alertas Diarias de Mantenimiento
+
+on:
+  schedule:
+    # Corre todos los días automáticamente (9:00 AM hora de El Salvador / CST)
+    - cron: '0 15 * * *' 
+  workflow_dispatch: # Permite que tú puedas activar el botón manualmente para probar
+
+jobs:
+  run-alerts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v3
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Instalar dependencias
+        run: npm install firebase-admin resend
+
+      - name: Ejecutar revisión de mantenimientos
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: node cron-check.js
