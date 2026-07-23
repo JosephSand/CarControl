@@ -20,7 +20,8 @@ const MAINTENANCE_TASKS = [
   { id: 'battery', name: 'Batería', intervalKm: 20000, hex: '#eab308' }
 ];
 
-function generarTarjeta(titulo, mensaje, hexColor, urgencia) {
+// SOLUCIÓN AQUÍ: Se añadió "nombreServicio" como el quinto parámetro
+function generarTarjeta(titulo, mensaje, hexColor, urgencia, nombreServicio) {
   let colorTexto, colorFondo;
   if (urgencia === 'critico') { colorTexto = "#991b1b"; colorFondo = "#fef2f2"; } 
   else if (urgencia === 'aviso') { colorTexto = "#b45309"; colorFondo = "#fffbeb"; }
@@ -66,9 +67,8 @@ async function runCheck() {
 
         if (diasDesdeUpdate >= 30) {
             necesitaRecordatorioMensual = true;
-            let promedioDiario = 15; // Promedio base por defecto (15km/día = ~5400km/año)
+            let promedioDiario = 15;
             
-            // Consultar bitácora histórica para mejorar la estimación
             const userPath = docSnap.ref.path.replace('/profile/data', ''); 
             const historySnap = await db.collection(`${userPath}/history`).orderBy('date', 'asc').get();
             
@@ -81,7 +81,6 @@ async function runCheck() {
             
             kilometrajeEstimado += Math.round(promedioDiario * diasDesdeUpdate);
             
-            // Auto-actualizar Firestore
             await docSnap.ref.update({
                 currentMileage: kilometrajeEstimado,
                 lastMileageUpdate: hoy.toISOString(),
@@ -97,7 +96,6 @@ async function runCheck() {
     MAINTENANCE_TASKS.forEach(task => {
       let alertaGenerada = false;
 
-      // A) Revisión por Fecha Agendada
       if (userData.nextDates && userData.nextDates[task.id]) {
         const fecha = new Date(userData.nextDates[task.id]);
         fecha.setHours(0, 0, 0, 0);
@@ -112,7 +110,6 @@ async function runCheck() {
         }
       }
 
-      // B) Revisión por Kilometraje (Si la fecha no detonó nada, revisamos desgaste)
       if (!alertaGenerada) {
           const ultimoKmServicio = (userData.services && userData.services[task.id]) || 0;
           if (ultimoKmServicio > 0) {
@@ -129,7 +126,7 @@ async function runCheck() {
     });
 
     // ==============================================================
-    // 3. ENVÍO DE NOTIFICACIONES (Instantáneas o Mensuales)
+    // 3. ENVÍO DE NOTIFICACIONES
     // ==============================================================
     if (htmlCorreos !== '' || necesitaRecordatorioMensual) {
       if (userData.contact.email) {
@@ -140,7 +137,7 @@ async function runCheck() {
             <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; margin-bottom: 20px; text-align: center;">
                 <h3 style="color: #334155; margin-top: 0;">📅 Actualización Mensual Requerida</h3>
                 <p style="color: #475569; font-size: 14px;">Ha pasado un mes sin registros. <b>Estimamos tu kilometraje actual en ${kilometrajeEstimado} km</b> basándonos en tu historial de uso.</p>
-                <p style="color: #475569; font-size: 14px; font-weight: bold;">Por favor, ingresa a la aplicación para registrar el kilometraje exacto del tablero para mantener la precisión del sistema.</p>
+                <p style="color: #475569; font-size: 14px; font-weight: bold;">Por favor, ingresa a la aplicación para registrar el kilometraje exacto.</p>
             </div>`;
         }
         cuerpoHTML += htmlCorreos;
@@ -178,7 +175,7 @@ async function runCheck() {
             from: process.env.TWILIO_FROM_NUMBER,
             to: process.env.TWILIO_TO_NUMBER
           });
-          console.log(`WhatsApp enviado al administrador.`);
+          console.log(`WhatsApp enviado.`);
         } catch (e) { console.error('Error enviando Twilio:', e); }
       }
     }
