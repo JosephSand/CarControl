@@ -1,127 +1,186 @@
 const admin = require('firebase-admin');
 const { Resend } = require('resend');
+const twilio = require('twilio');
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 const resend = new Resend(process.env.RESEND_API_KEY);
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
+admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
-// Ya no necesitamos los intervalKm aquí porque usaremos fechas exactas
 const MAINTENANCE_TASKS = [
-  { id: 'oil', name: 'Cambio de Aceite y Filtro' },
-  { id: 'tires', name: 'Rotación/Cambio Llantas' },
-  { id: 'cabin_filter', name: 'Filtro de Cabina' },
-  { id: 'engine_filter', name: 'Filtro de Motor' },
-  { id: 'brake_fluid', name: 'Líquido de Frenos' },
-  { id: 'brakes', name: 'Balatas' },
-  { id: 'spark_plugs', name: 'Bujías' },
-  { id: 'battery', name: 'Batería' }
+  { id: 'oil', name: 'Cambio de Aceite', intervalKm: 10000, hex: '#f59e0b' }, 
+  { id: 'tires', name: 'Rotación Llantas', intervalKm: 10000, hex: '#10b981' }, 
+  { id: 'cabin_filter', name: 'Filtro Cabina', intervalKm: 20000, hex: '#0ea5e9' },
+  { id: 'engine_filter', name: 'Filtro Motor', intervalKm: 40000, hex: '#3b82f6' },
+  { id: 'brake_fluid', name: 'Líquido Frenos', intervalKm: 40000, hex: '#8b5cf6' },
+  { id: 'brakes', name: 'Balatas / Frenos', intervalKm: 30000, hex: '#f43f5e' },
+  { id: 'spark_plugs', name: 'Bujías', intervalKm: 100000, hex: '#d946ef' },
+  { id: 'battery', name: 'Batería', intervalKm: 20000, hex: '#eab308' }
 ];
 
-function obtenerPlantillaRecordatorio(nombreServicio, diasRestantes) {
-  let titulo, mensaje, colorTexto, colorFondo;
+function generarTarjeta(titulo, mensaje, hexColor, urgencia) {
+  let colorTexto, colorFondo;
+  if (urgencia === 'critico') { colorTexto = "#991b1b"; colorFondo = "#fef2f2"; } 
+  else if (urgencia === 'aviso') { colorTexto = "#b45309"; colorFondo = "#fffbeb"; }
+  else { colorTexto = "#0f766e"; colorFondo = "#f0fdfa"; }
 
-  if (diasRestantes < 0) {
-    titulo = "🚨 Mantenimiento Vencido (Riesgo de Daño)";
-    mensaje = `El periodo para realizar el servicio de <b>${nombreServicio}</b> ya pasó. Debes realizar este cambio y registrar el evento en la aplicación de inmediato. Circular en estas condiciones podría causar daños mecánicos severos o permanentes al vehículo.`;
-    colorTexto = "#991b1b"; colorFondo = "#fef2f2";
-  } else if (diasRestantes === 1) {
-    titulo = "⏰ ¡Es Mañana!";
-    mensaje = `Tu servicio de <b>${nombreServicio}</b> está programado para mañana. Asegúrate de tener todo listo.`;
-    colorTexto = "#c2410c"; colorFondo = "#fff7ed";
-  } else if (diasRestantes > 1 && diasRestantes <= 7) {
-    titulo = "🗓️ Faltan menos de 7 días";
-    mensaje = `Tienes menos de una semana para realizar el <b>${nombreServicio}</b>. Es buen momento para agendar tu visita al taller.`;
-    colorTexto = "#b45309"; colorFondo = "#fffbeb";
-  } else if (diasRestantes > 7 && diasRestantes <= 15) {
-    titulo = "👀 En 15 días";
-    mensaje = `En aproximadamente dos semanas tu vehículo necesitará el servicio de <b>${nombreServicio}</b>. Mantén este pendiente en tu radar.`;
-    colorTexto = "#1d4ed8"; colorFondo = "#eff6ff";
-  } else if (diasRestantes > 15 && diasRestantes <= 30) {
-    titulo = "ℹ️ Próximo mes";
-    mensaje = `Falta un mes para tu próximo <b>${nombreServicio}</b>. Te avisaremos conforme se acerque la fecha.`;
-    colorTexto = "#0f766e"; colorFondo = "#f0fdfa";
-  } else {
-    return null; // Falta más de un mes, no enviamos nada aún
-  }
-
-  return `
-    <div style="background-color: ${colorFondo}; border-radius: 8px; padding: 20px; margin-bottom: 15px; border-left: 5px solid ${colorTexto};">
-      <h3 style="color: ${colorTexto}; margin-top: 0; margin-bottom: 10px; font-size: 18px;">${titulo}</h3>
-      <p style="color: #3f3f46; margin: 0; font-size: 15px; line-height: 1.5;">${mensaje}</p>
+  const html = `
+    <div style="background-color: ${colorFondo}; border-radius: 8px; padding: 15px; margin-bottom: 12px; border-left: 5px solid ${hexColor};">
+      <h3 style="color: ${colorTexto}; margin-top: 0; margin-bottom: 5px; font-size: 16px;">${titulo}: ${nombreServicio}</h3>
+      <p style="color: #3f3f46; margin: 0; font-size: 14px; line-height: 1.4;">${mensaje}</p>
     </div>
   `;
+  const texto = `\n- *${titulo}*: ${nombreServicio} -> ${mensaje}`;
+  return { html, texto };
 }
 
 async function runCheck() {
-  console.log('Iniciando revisión diaria por fechas...');
+  console.log('Iniciando escaneo de Telemetría (Fechas, KM y Estimaciones)...');
   const usersSnapshot = await db.collectionGroup('profile').get();
   if (usersSnapshot.empty) return;
 
   const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0); // Normalizamos a la medianoche para contar días enteros
+  hoy.setHours(0, 0, 0, 0);
 
-  for (const doc of usersSnapshot.docs) {
-    const userData = doc.data();
-    
-    // Si no quiere alertas o no tiene correo, saltamos al siguiente
-    if (!userData.contact || !userData.contact.wantsAlerts || !userData.contact.email) continue;
+  for (const docSnap of usersSnapshot.docs) {
+    const userData = docSnap.data();
+    if (!userData.contact || !userData.contact.wantsAlerts) continue;
 
-    const nombreConductor = userData.contact.name || 'Conductor'; // <-- AQUÍ USAMOS EL NOMBRE
+    const nombreConductor = userData.contact.name || 'Conductor';
     const vehicleName = `${userData.vehicle?.make || 'Kia'} ${userData.vehicle?.model || 'Soul'}`;
-    let alertasGeneradasHTML = '';
+    
+    let htmlCorreos = '';
+    let textoWhatsApp = '';
+    let necesitaRecordatorioMensual = false;
+    let kilometrajeEstimado = userData.currentMileage || 0;
 
-    // Revisamos cada tarea de mantenimiento para ver si tiene fecha agendada
-    MAINTENANCE_TASKS.forEach(task => {
-      // Asumimos que guardas las fechas futuras en "nextDates"
-      if (userData.nextDates && userData.nextDates[task.id]) {
-        const fechaProgramada = new Date(userData.nextDates[task.id]);
-        fechaProgramada.setHours(0, 0, 0, 0);
-        
-        // Calculamos cuántos días faltan
-        const milisegundosRestantes = fechaProgramada.getTime() - hoy.getTime();
-        const diasRestantes = Math.ceil(milisegundosRestantes / (1000 * 3600 * 24));
+    // ==============================================================
+    // ALGORITMO 1: Estimación Automática (Inactividad > 30 días)
+    // ==============================================================
+    if (userData.lastMileageUpdate) {
+        const lastUpdate = new Date(userData.lastMileageUpdate);
+        lastUpdate.setHours(0, 0, 0, 0);
+        const diasDesdeUpdate = Math.ceil((hoy.getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24));
 
-        const tarjetaHTML = obtenerPlantillaRecordatorio(task.name, diasRestantes);
-        if (tarjetaHTML) {
-          alertasGeneradasHTML += tarjetaHTML;
+        if (diasDesdeUpdate >= 30) {
+            necesitaRecordatorioMensual = true;
+            let promedioDiario = 15; // Promedio base por defecto (15km/día = ~5400km/año)
+            
+            // Consultar bitácora histórica para mejorar la estimación
+            const userPath = docSnap.ref.path.replace('/profile/data', ''); 
+            const historySnap = await db.collection(`${userPath}/history`).orderBy('date', 'asc').get();
+            
+            if (historySnap.docs.length >= 2) {
+                const primerLog = historySnap.docs[0].data();
+                const ultimoLog = historySnap.docs[historySnap.docs.length - 1].data();
+                const diasHistorial = Math.ceil((new Date(ultimoLog.date).getTime() - new Date(primerLog.date).getTime()) / (1000 * 3600 * 24));
+                if (diasHistorial > 0) promedioDiario = Math.max(5, (ultimoLog.km - primerLog.km) / diasHistorial);
+            }
+            
+            kilometrajeEstimado += Math.round(promedioDiario * diasDesdeUpdate);
+            
+            // Auto-actualizar Firestore
+            await docSnap.ref.update({
+                currentMileage: kilometrajeEstimado,
+                lastMileageUpdate: hoy.toISOString(),
+                isEstimated: true
+            });
+            console.log(`Kilometraje de ${nombreConductor} auto-estimado a ${kilometrajeEstimado}km`);
         }
+    }
+
+    // ==============================================================
+    // ALGORITMO 2: Generación de Alertas (Combinación Fecha + KM)
+    // ==============================================================
+    MAINTENANCE_TASKS.forEach(task => {
+      let alertaGenerada = false;
+
+      // A) Revisión por Fecha Agendada
+      if (userData.nextDates && userData.nextDates[task.id]) {
+        const fecha = new Date(userData.nextDates[task.id]);
+        fecha.setHours(0, 0, 0, 0);
+        const diasRestantes = Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 3600 * 24));
+
+        if (diasRestantes < 0) {
+            const res = generarTarjeta("🚨 VENCIDO (CRÍTICO)", `La fecha límite ya pasó. Realízalo lo antes posible para evitar daños mecánicos.`, task.hex, 'critico', task.name);
+            htmlCorreos += res.html; textoWhatsApp += res.texto; alertaGenerada = true;
+        } else if (diasRestantes <= 15) {
+            const res = generarTarjeta("⏰ PRÓXIMO A VENCER", `El servicio está agendado en los próximos ${diasRestantes} días.`, task.hex, 'aviso', task.name);
+            htmlCorreos += res.html; textoWhatsApp += res.texto; alertaGenerada = true;
+        }
+      }
+
+      // B) Revisión por Kilometraje (Si la fecha no detonó nada, revisamos desgaste)
+      if (!alertaGenerada) {
+          const ultimoKmServicio = (userData.services && userData.services[task.id]) || 0;
+          if (ultimoKmServicio > 0) {
+              const remainingKm = (ultimoKmServicio + task.intervalKm) - kilometrajeEstimado;
+              if (remainingKm < 0) {
+                  const res = generarTarjeta("🚨 DESGASTE VENCIDO", `El Odómetro marca ${kilometrajeEstimado} km. Has superado el límite de vida útil por ${Math.abs(remainingKm)} km. ¡Urgente!`, task.hex, 'critico', task.name);
+                  htmlCorreos += res.html; textoWhatsApp += res.texto;
+              } else if (remainingKm <= 1500) {
+                  const res = generarTarjeta("⚠️ DESGASTE PRÓXIMO", `Te quedan solo ${remainingKm} km de vida útil. Ve planificando el servicio.`, task.hex, 'aviso', task.name);
+                  htmlCorreos += res.html; textoWhatsApp += res.texto;
+              }
+          }
       }
     });
 
-    // Si se generó al menos una alerta, enviamos el correo
-    if (alertasGeneradasHTML !== '') {
-      const htmlContent = `
-        <div style="font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f4f5; padding: 30px; border-radius: 8px;">
-          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="background-color: #0ea5e9; padding: 25px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">🚗 Reporte de Telemetría</h1>
-              <p style="color: #e0f2fe; margin: 8px 0 0 0; font-size: 16px; font-weight: 500;">${vehicleName}</p>
-            </div>
-            <div style="padding: 30px;">
-              <p style="color: #3f3f46; font-size: 18px; margin-top: 0; font-weight: 700;">Hola, ${nombreConductor}</p>
-              <p style="color: #52525b; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">
-                Este es tu asistente de mantenimiento inteligente. Según tu calendario, hemos detectado las siguientes notificaciones importantes:
-              </p>
-              
-              ${alertasGeneradasHTML}
-              
+    // ==============================================================
+    // 3. ENVÍO DE NOTIFICACIONES (Instantáneas o Mensuales)
+    // ==============================================================
+    if (htmlCorreos !== '' || necesitaRecordatorioMensual) {
+      if (userData.contact.email) {
+        let cuerpoHTML = '';
+        
+        if (necesitaRecordatorioMensual) {
+            cuerpoHTML += `
+            <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; margin-bottom: 20px; text-align: center;">
+                <h3 style="color: #334155; margin-top: 0;">📅 Actualización Mensual Requerida</h3>
+                <p style="color: #475569; font-size: 14px;">Ha pasado un mes sin registros. <b>Estimamos tu kilometraje actual en ${kilometrajeEstimado} km</b> basándonos en tu historial de uso.</p>
+                <p style="color: #475569; font-size: 14px; font-weight: bold;">Por favor, ingresa a la aplicación para registrar el kilometraje exacto del tablero para mantener la precisión del sistema.</p>
+            </div>`;
+        }
+        cuerpoHTML += htmlCorreos;
+
+        const emailCompleto = `
+          <div style="font-family: Arial, sans-serif; background-color: #020617; padding: 30px; border-radius: 8px;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden;">
+              <div style="background-color: #0ea5e9; padding: 25px; text-align: center;">
+                <h1 style="color: white; margin: 0;">🚗 Telemetría Automotriz</h1>
+                <p style="color: #e0f2fe; margin: 5px 0 0 0;">${vehicleName}</p>
+              </div>
+              <div style="padding: 30px;">
+                <p style="font-size: 18px; font-weight: bold;">Hola, ${nombreConductor}</p>
+                ${cuerpoHTML}
+              </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
 
-      await resend.emails.send({
-        from: 'Asistente Kia Soul <onboarding@resend.dev>',
-        to: userData.contact.email,
-        subject: `Notificación de Mantenimiento: ${vehicleName}`,
-        html: htmlContent
-      });
-      console.log(`Correo enviado a ${nombreConductor} (${userData.contact.email})`);
+        try {
+            await resend.emails.send({
+                from: 'Asistente Vehicular <onboarding@resend.dev>',
+                to: userData.contact.email,
+                subject: necesitaRecordatorioMensual ? `📅 Reporte Mensual: ${vehicleName}` : `⚠️ Alerta Instantánea: ${vehicleName}`,
+                html: emailCompleto
+            });
+            console.log(`Correo enviado a ${userData.contact.email}`);
+        } catch (e) { console.error('Error enviando Resend:', e); }
+      }
+
+      if (textoWhatsApp !== '' && process.env.TWILIO_TO_NUMBER) {
+        try {
+          await twilioClient.messages.create({
+            body: `🚗 *${vehicleName}*\nHola ${nombreConductor}, tu vehículo requiere atención inmediata:\n${textoWhatsApp}`,
+            from: process.env.TWILIO_FROM_NUMBER,
+            to: process.env.TWILIO_TO_NUMBER
+          });
+          console.log(`WhatsApp enviado al administrador.`);
+        } catch (e) { console.error('Error enviando Twilio:', e); }
+      }
     }
   }
 }
