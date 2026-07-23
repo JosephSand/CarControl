@@ -1,44 +1,29 @@
 const admin = require('firebase-admin');
+const { Resend } = require('resend');
 
-// 1. Conexión explícita
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
-async function debugDatabase() {
-  console.log('--- DIAGNÓSTICO PROFUNDO ---');
+async function runCheck() {
+  console.log('--- PRUEBA DE PÁNICO: ENVIANDO CORREO FORZADO ---');
   
+  // Cambia ESTE CORREO por el tuyo verificado en Resend
+  const MI_CORREO = 'TU_EMAIL_VERIFICADO_DE_RESEND@gmail.com'; 
+
   try {
-    // Intentamos listar las colecciones raíz para ver si 'usuarios' existe
-    const collections = await db.listCollections();
-    const colNames = collections.map(col => col.id);
-    console.log('Colecciones encontradas en la raíz:', colNames);
-
-    if (!colNames.includes('usuarios')) {
-      console.log('¡ERROR CRÍTICO! La colección "usuarios" no existe en la raíz de tu Firestore.');
-      return;
-    }
-
-    // Si existe, intentamos entrar al primer usuario
-    const users = await db.collection('usuarios').limit(1).get();
-    if (users.empty) {
-      console.log('La colección "usuarios" está vacía.');
-    } else {
-      console.log('¡Éxito! Encontré al menos un usuario.');
-      const userDoc = users.docs[0];
-      const profile = await userDoc.ref.collection('profile').doc('data').get();
-      
-      if (profile.exists) {
-        console.log('Perfil encontrado:', profile.data());
-      } else {
-        console.log('No existe el documento profile/data dentro del usuario:', userDoc.id);
-      }
-    }
+    await resend.emails.send({
+      from: 'Asistente <onboarding@resend.dev>',
+      to: MI_CORREO,
+      subject: 'PRUEBA DE CONEXIÓN',
+      html: '<h1>El sistema está funcionando correctamente.</h1>'
+    });
+    console.log('Correo de prueba enviado con éxito a:', MI_CORREO);
   } catch (e) {
-    console.error('Error al conectar con Firestore:', e.message);
+    console.error('ERROR AL ENVIAR:', e);
   }
 }
 
-debugDatabase();
+runCheck().catch(console.error);
