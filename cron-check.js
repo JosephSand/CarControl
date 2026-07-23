@@ -1,37 +1,28 @@
 const admin = require('firebase-admin');
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
+admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
-async function pruebaFinal() {
-  console.log('--- INTENTANDO LECTURA FORZADA ---');
+async function encontrarDatosReales() {
+  console.log('--- BUSCANDO EN LA RUTA PROFUNDA ---');
   try {
-    // Intentamos listar los documentos de la colección "usuarios"
-    const snapshot = await db.collection('usuarios').get();
+    const usuarios = await db.collection('usuarios').get();
     
-    if (snapshot.empty) {
-      console.log('La colección "usuarios" existe pero no tiene documentos.');
-    } else {
-      console.log('¡Éxito! Encontré', snapshot.size, 'documentos.');
-      // Leer el primer documento
-      const doc = snapshot.docs[0];
-      console.log('ID del primer doc:', doc.id);
+    for (const doc of usuarios.docs) {
+      console.log('Entrando al usuario ID:', doc.id);
+      // Aquí está el cambio: buscamos dentro de la subcolección 'profile' del usuario
+      const profile = await doc.ref.collection('profile').doc('data').get();
       
-      // Intentar leer datos de forma directa
-      const data = doc.data();
-      console.log('Datos del doc:', JSON.stringify(data));
-      
-      // Intentar listar subcolecciones del primer documento
-      const subs = await doc.ref.listCollections();
-      console.log('Subcolecciones encontradas en ese doc:', subs.map(s => s.id));
+      if (profile.exists) {
+        console.log('¡DATOS ENCONTRADOS en ID:', doc.id);
+        console.log('Contenido:', JSON.stringify(profile.data()));
+      } else {
+        console.log('El usuario', doc.id, 'no tiene profile/data');
+      }
     }
-  } catch (error) {
-    console.error('ERROR AL ACCEDER A FIREBASE:', error.message);
+  } catch (e) {
+    console.error('Error:', e.message);
   }
 }
 
-pruebaFinal();
+encontrarDatosReales();
