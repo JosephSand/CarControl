@@ -1,0 +1,783 @@
+
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Mantenimiento | Telemetría</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        accent: 'rgb(var(--color-accent) / <alpha-value>)',
+                        themeApp: 'var(--bg-app)',
+                        themePanel: 'var(--bg-panel)',
+                        themeCard: 'var(--bg-card)',
+                        themeInput: 'var(--bg-input)',
+                        themeSubCard: 'var(--bg-subcard)',
+                        themeBorder: 'var(--border-color)',
+                        themeText: 'var(--text-main)',
+                        themeTitle: 'var(--text-title)',
+                        themeMuted: 'var(--text-muted)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['var(--font-mono)', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            /* Valores por defecto (Futurista / Cyan) */
+            --bg-app: #020617;
+            --bg-panel: rgba(15, 23, 42, 0.8);
+            --bg-card: rgba(15, 23, 42, 0.5);
+            --bg-input: #020617;
+            --bg-subcard: rgba(15, 23, 42, 0.5);
+            --border-color: #1e293b;
+            --text-main: #cbd5e1;
+            --text-title: #f1f5f9;
+            --text-muted: #64748b;
+            --color-accent: 14 165 233;
+            --font-mono: 'Space Mono';
+            --app-bg-image: radial-gradient(ellipse 80% 80% at 50% -20%, rgba(255,255,255,0.05), rgba(0,0,0,0));
+        }
+
+        body {
+            background-color: var(--bg-app);
+            background-image: var(--app-bg-image);
+            color: var(--text-main);
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        /* Utilidades personalizadas */
+        .glass-panel { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 10px; }
+        
+        .shadow-glow { box-shadow: 0 0 15px rgb(var(--color-accent) / 0.2); }
+        .shadow-glow-hover:hover { box-shadow: 0 0 25px rgb(var(--color-accent) / 0.3); border-color: rgb(var(--color-accent) / 0.5); }
+    </style>
+</head>
+<body class="min-h-screen font-sans pb-12 selection:bg-accent/30 selection:text-white transition-colors duration-500">
+
+    <!-- HEADER -->
+    <header class="bg-themePanel glass-panel border-b border-themeBorder sticky top-0 z-10 shadow-sm transition-colors duration-500">
+        <div class="max-w-5xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-accent/10 p-2.5 rounded-xl border border-accent/30 shadow-glow transition-colors duration-500">
+                    <i class="ph ph-car-profile text-2xl text-accent"></i>
+                </div>
+                <div>
+                    <div id="btn-open-profile" class="flex items-center gap-2 group cursor-pointer">
+                        <h1 class="text-xl sm:text-2xl font-bold leading-none tracking-tight text-themeTitle group-hover:text-accent transition-colors drop-shadow-md">
+                            <span id="display-make">Kia</span> <span id="display-model">Soul</span> 
+                            <span id="display-year" class="text-accent opacity-80 font-mono ml-1 text-lg">2018</span>
+                        </h1>
+                        <i class="ph ph-pencil-simple text-themeMuted group-hover:text-accent transition-colors opacity-0 group-hover:opacity-100"></i>
+                    </div>
+                    <p class="text-accent opacity-60 text-xs sm:text-sm mt-1 font-mono tracking-widest uppercase">Sistema de Telemetría</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button id="btn-open-alerts" class="p-2.5 rounded-full hover:bg-black/10 transition-colors text-themeMuted hover:text-accent relative" title="Alertas">
+                    <i class="ph ph-bell text-2xl"></i>
+                    <span id="alert-indicator" class="hidden absolute top-2 right-2 w-2 h-2 rounded-full bg-accent shadow-[0_0_5px_rgb(var(--color-accent)/0.8)] animate-pulse"></span>
+                </button>
+                <button id="btn-open-settings" class="p-2.5 rounded-full hover:bg-black/10 transition-colors text-themeMuted hover:text-accent" title="Ajustes">
+                    <i class="ph ph-gear text-2xl animate-[spin_10s_linear_infinite]"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+        
+        <!-- PANEL KILOMETRAJE -->
+        <section class="bg-themeCard border-themeBorder border rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden transition-colors duration-500 shadow-sm group">
+            <div class="absolute right-0 top-0 w-48 h-48 bg-accent/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-accent/10"></div>
+            <div class="relative z-10">
+                <h2 class="text-lg font-bold text-themeTitle flex items-center gap-2 tracking-wide transition-colors">
+                    ODÓMETRO GLOBAL
+                </h2>
+                <p class="text-sm text-themeMuted mt-0.5 font-mono">Variables base del sistema.</p>
+            </div>
+            <div class="flex items-center max-w-xs w-full relative z-10">
+                <input type="number" id="input-global-km" placeholder="00000" class="block w-full pl-4 pr-16 py-3 text-2xl font-mono text-accent border border-themeBorder rounded-xl focus:ring-1 focus:ring-accent focus:border-accent transition-all bg-themeInput placeholder:text-themeMuted outline-none shadow-inner" />
+                <span class="absolute right-4 text-accent font-bold tracking-widest text-sm font-mono">KM</span>
+            </div>
+        </section>
+
+        <!-- TABS NAV -->
+        <nav class="flex bg-themeSubCard p-1.5 rounded-xl max-w-sm border border-themeBorder transition-colors duration-500">
+            <button id="tab-btn-dashboard" class="flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 bg-themePanel text-accent shadow-sm border border-themeBorder">
+                <i class="ph ph-clipboard-text text-lg"></i> Diagnóstico
+            </button>
+            <button id="tab-btn-history" class="flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 text-themeMuted hover:text-themeTitle">
+                <i class="ph ph-clock-counter-clockwise text-lg"></i> Registros
+            </button>
+        </nav>
+
+        <!-- VISTAS -->
+        <div id="view-dashboard" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <!-- Renderizado por JS -->
+        </div>
+
+        <div id="view-history" class="hidden">
+            <section class="bg-themePanel rounded-2xl border border-themeBorder overflow-hidden transition-colors duration-500">
+                <div class="p-5 border-b border-themeBorder bg-themeSubCard flex items-center gap-3 transition-colors">
+                    <i class="ph ph-clock-counter-clockwise text-xl text-accent opacity-80"></i>
+                    <div>
+                        <h2 class="text-base font-bold text-themeTitle tracking-wide">BITÁCORA DEL SISTEMA</h2>
+                    </div>
+                </div>
+                <div id="history-container" class="divide-y divide-themeBorder">
+                    <!-- Renderizado por JS -->
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <!-- MODAL: SETTINGS -->
+    <div id="modal-settings" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity">
+        <div class="bg-themePanel border border-themeBorder rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200">
+            <div class="px-5 py-4 border-b border-themeBorder flex justify-between items-center bg-themeSubCard">
+                <h3 class="font-bold text-themeTitle flex items-center gap-2 tracking-wide">
+                    <i class="ph ph-palette text-xl text-accent"></i> PERSONALIZAR
+                </h3>
+                <button class="btn-close-modal p-1.5 rounded-full text-themeMuted hover:text-themeTitle transition-colors"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-7">
+                <div>
+                    <label class="block text-xs font-bold text-accent mb-3 uppercase tracking-widest font-mono">Estilo Visual</label>
+                    <div id="theme-selector" class="grid grid-cols-2 gap-3"></div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-accent mb-4 uppercase tracking-widest font-mono">Color de Acento</label>
+                    <div id="color-selector" class="flex gap-4 justify-center"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PROFILE -->
+    <div id="modal-profile" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity">
+        <div class="bg-themePanel border border-themeBorder rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200">
+            <div class="px-5 py-4 border-b border-themeBorder flex justify-between items-center bg-themeSubCard">
+                <h3 class="font-bold text-themeTitle flex items-center gap-2 tracking-wide">
+                    <i class="ph ph-car-profile text-xl text-accent"></i> CONFG. SISTEMA
+                </h3>
+                <button class="btn-close-modal p-1.5 rounded-full text-themeMuted hover:text-themeTitle transition-colors"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            <form id="form-profile" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-accent mb-1.5 uppercase tracking-widest font-mono">Fabricante</label>
+                    <select id="select-make" class="w-full p-2.5 border border-themeBorder rounded-xl text-sm font-semibold bg-themeInput text-themeTitle focus:ring-1 focus:ring-accent focus:border-accent outline-none appearance-none"></select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-accent mb-1.5 uppercase tracking-widest font-mono">Modelo</label>
+                    <select id="select-model" class="w-full p-2.5 border border-themeBorder rounded-xl text-sm font-semibold bg-themeInput text-themeTitle focus:ring-1 focus:ring-accent focus:border-accent outline-none appearance-none"></select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-accent mb-1.5 uppercase tracking-widest font-mono">Año</label>
+                    <select id="select-year" class="w-full p-2.5 border border-themeBorder rounded-xl text-sm font-semibold bg-themeInput text-themeTitle focus:ring-1 focus:ring-accent focus:border-accent outline-none appearance-none"></select>
+                </div>
+                <div class="pt-4">
+                    <button type="submit" class="w-full py-3 bg-accent text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-glow tracking-wider">APLICAR CAMBIOS</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ALERTAS -->
+    <div id="modal-alerts" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity">
+        <div class="bg-themePanel border border-themeBorder rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200">
+            <div class="px-5 py-4 border-b border-themeBorder flex justify-between items-center bg-themeSubCard">
+                <h3 class="font-bold text-themeTitle flex items-center gap-2 tracking-wide">
+                    <i class="ph ph-bell text-xl text-accent"></i> ALERTAS
+                </h3>
+                <button class="btn-close-modal p-1.5 rounded-full text-themeMuted hover:text-themeTitle transition-colors"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            <form id="form-alerts" class="p-5 space-y-5">
+                <div class="flex items-center justify-between p-4 bg-themeInput border border-themeBorder rounded-xl">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-bold text-themeTitle">Notificaciones</span>
+                        <span class="text-xs text-themeMuted font-mono">Activar recordatorios</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="input-wants-alerts" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                    </label>
+                </div>
+                <div id="alerts-fields" class="space-y-4 hidden">
+                    <div>
+                        <label class="flex items-center gap-2 text-xs font-bold text-accent mb-1.5 uppercase tracking-widest font-mono"><i class="ph ph-envelope-simple"></i> E-Mail</label>
+                        <input type="email" id="input-email" placeholder="usuario@correo.com" class="w-full p-2.5 border border-themeBorder rounded-xl text-sm bg-themeInput text-themeTitle focus:ring-1 focus:ring-accent outline-none" />
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-2 text-xs font-bold text-accent mb-1.5 uppercase tracking-widest font-mono"><i class="ph ph-device-mobile"></i> WhatsApp</label>
+                        <input type="tel" id="input-phone" placeholder="+52 55 1234 5678" class="w-full p-2.5 border border-themeBorder rounded-xl text-sm bg-themeInput text-themeTitle focus:ring-1 focus:ring-accent outline-none" />
+                        <p class="text-[10px] text-themeMuted mt-1.5 italic">*Incluye código de país.</p>
+                    </div>
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-3 bg-accent text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-glow tracking-wider">GUARDAR CONFIGURACIÓN</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR SERVICIO -->
+    <div id="modal-log" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity">
+        <div class="bg-themePanel border border-themeBorder rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-200">
+            <div class="px-5 py-4 border-b border-themeBorder flex justify-between items-center bg-themeSubCard">
+                <h3 class="font-bold text-themeTitle flex items-center gap-2 tracking-wide">
+                    <i class="ph ph-pen-nib text-xl text-accent"></i> NUEVO REGISTRO
+                </h3>
+                <button class="btn-close-modal p-1.5 rounded-full text-themeMuted hover:text-themeTitle transition-colors"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            <form id="form-log" class="p-5 space-y-5 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                <input type="hidden" id="log-task-id">
+                <div class="flex items-center gap-3 p-3 bg-accent/10 border border-accent/30 rounded-xl text-accent shadow-glow">
+                    <i id="log-task-icon" class="text-xl"></i>
+                    <span id="log-task-name" class="font-bold text-sm tracking-wide"></span>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-accent mb-1.5 uppercase tracking-widest font-mono">Lectura (KM)</label>
+                        <input type="number" id="log-km" required class="w-full p-2.5 border border-themeBorder rounded-xl text-sm font-mono font-bold bg-themeInput text-themeTitle focus:ring-1 focus:ring-accent outline-none" />
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-accent mb-1.5 uppercase tracking-widest font-mono">Fecha</label>
+                        <input type="date" id="log-date" required class="w-full p-2.5 border border-themeBorder rounded-xl text-sm font-semibold bg-themeInput text-themeMain focus:ring-1 focus:ring-accent outline-none" />
+                    </div>
+                </div>
+                <div id="log-dynamic-fields" class="p-4 bg-themeSubCard border border-themeBorder rounded-xl space-y-4 hidden">
+                    <h4 class="text-[10px] font-bold text-themeMuted uppercase tracking-widest mb-2 flex items-center gap-1.5 font-mono">
+                        <i class="ph ph-clipboard-text text-accent opacity-50"></i> Variables
+                    </h4>
+                    <div id="log-fields-container"></div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="col-span-1">
+                        <label class="block text-[10px] font-bold text-accent mb-1.5 uppercase tracking-widest font-mono">Costo ($)</label>
+                        <input type="number" step="0.01" id="log-cost" placeholder="0.00" class="w-full p-2.5 border border-themeBorder rounded-xl text-sm font-mono font-bold bg-themeInput text-emerald-500 focus:ring-1 focus:ring-accent outline-none" />
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-bold text-accent mb-1.5 uppercase tracking-widest font-mono">Notas</label>
+                        <input type="text" id="log-notes" placeholder="Observaciones..." class="w-full p-2.5 border border-themeBorder rounded-xl text-sm bg-themeInput text-themeTitle focus:ring-1 focus:ring-accent outline-none placeholder:text-themeMuted" />
+                    </div>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" class="btn-close-modal flex-1 py-3 bg-themeSubCard border border-themeBorder text-themeMain rounded-xl font-bold hover:bg-themePanel transition-colors tracking-wide">ABORTAR</button>
+                    <button type="submit" class="flex-1 py-3 bg-accent text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-glow flex items-center justify-center gap-2 tracking-wide">
+                        <i class="ph ph-floppy-disk text-lg"></i> EJECUTAR
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- CONSTANTES Y BASES DE DATOS ---
+        const THEMES = {
+            futuristic: { name: 'Futurista', vars: { '--bg-app': '#020617', '--bg-panel': 'rgba(15, 23, 42, 0.8)', '--bg-card': 'rgba(15, 23, 42, 0.5)', '--bg-input': '#020617', '--bg-subcard': 'rgba(15, 23, 42, 0.5)', '--border-color': '#1e293b', '--text-main': '#cbd5e1', '--text-title': '#f1f5f9', '--text-muted': '#64748b', '--font-mono': '"Space Mono", monospace', '--app-bg-image': 'radial-gradient(ellipse 80% 80% at 50% -20%, rgba(255,255,255,0.05), rgba(0,0,0,0))' }},
+            minimalist: { name: 'Minimalista', vars: { '--bg-app': '#f8fafc', '--bg-panel': 'rgba(255, 255, 255, 0.9)', '--bg-card': '#ffffff', '--bg-input': '#f8fafc', '--bg-subcard': '#f1f5f9', '--border-color': '#e2e8f0', '--text-main': '#475569', '--text-title': '#0f172a', '--text-muted': '#94a3b8', '--font-mono': '"Inter", sans-serif', '--app-bg-image': 'none' }},
+            industrial: { name: 'Industrial', vars: { '--bg-app': '#18181b', '--bg-panel': 'rgba(39, 39, 42, 0.9)', '--bg-card': 'rgba(39, 39, 42, 0.8)', '--bg-input': '#09090b', '--bg-subcard': '#18181b', '--border-color': '#3f3f46', '--text-main': '#d4d4d8', '--text-title': '#fafafa', '--text-muted': '#a1a1aa', '--font-mono': '"Space Mono", monospace', '--app-bg-image': 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.02) 10px, rgba(255,255,255,0.02) 20px)' }},
+            organic: { name: 'Orgánico', vars: { '--bg-app': '#f5f5f4', '--bg-panel': 'rgba(250, 250, 249, 0.9)', '--bg-card': '#ffffff', '--bg-input': '#ffffff', '--bg-subcard': '#f5f5f4', '--border-color': '#e7e5e4', '--text-main': '#57534e', '--text-title': '#1c1917', '--text-muted': '#a8a29e', '--font-mono': '"Inter", sans-serif', '--app-bg-image': 'radial-gradient(ellipse at top right, rgba(200,200,180,0.2), transparent)' }},
+            oled: { name: 'OLED Puro', vars: { '--bg-app': '#000000', '--bg-panel': '#000000', '--bg-card': '#171717', '--bg-input': '#000000', '--bg-subcard': '#000000', '--border-color': '#262626', '--text-main': '#d4d4d8', '--text-title': '#ffffff', '--text-muted': '#737373', '--font-mono': '"Inter", sans-serif', '--app-bg-image': 'none' }}
+        };
+
+        const COLORS = {
+            cyan: { name: 'Sky Cyan', hex: '#0ea5e9', rgb: '14 165 233' },
+            rose: { name: 'Rosa Neón', hex: '#f43f5e', rgb: '244 63 94' },
+            amber: { name: 'Ámbar', hex: '#f59e0b', rgb: '245 158 11' },
+            emerald: { name: 'Esmeralda', hex: '#10b981', rgb: '16 185 129' },
+            purple: { name: 'Púrpura', hex: '#a855f7', rgb: '168 85 247' }
+        };
+
+        const CAR_DATABASE = {
+            'Kia': ['Soul', 'Forte', 'Rio', 'Sorento', 'Sportage', 'Niro', 'Seltos'],
+            'Audi': ['A1', 'A3', 'A4', 'Q3', 'Q5'], 'BMW': ['Serie 3', 'X3', 'X5'],
+            'Chevrolet': ['Aveo', 'Beat', 'Onix', 'Tracker'], 'Ford': ['Explorer', 'F-150', 'Mustang'],
+            'Honda': ['Civic', 'CR-V', 'Fit'], 'Hyundai': ['Accent', 'Elantra', 'Tucson'],
+            'Mazda': ['CX-3', 'Mazda3'], 'Nissan': ['March', 'Sentra', 'Versa'], 
+            'Toyota': ['Corolla', 'Hilux', 'RAV4'], 'Volkswagen': ['Jetta', 'Taos', 'Vento']
+        };
+        const YEARS = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() + 1 - i);
+
+        const MAINTENANCE_TASKS = [
+            { id: 'oil', name: 'Cambio de Aceite y Filtro', intervalKm: 10000, icon: 'ph-gear', fields: [{ id: 'oilBrand', label: 'Marca de Aceite', type: 'text', placeholder: 'Ej: Castrol, Mobil...' }, { id: 'viscosity', label: 'Viscosidad', type: 'text', placeholder: 'Ej: 5W-30...' }] },
+            { id: 'tires', name: 'Rotación/Cambio Llantas', intervalKm: 10000, icon: 'ph-car-profile', fields: [{ id: 'tireBrand', label: 'Marca', type: 'text', placeholder: 'Ej: Michelin...' }, { id: 'pressure', label: 'Presión (psi)', type: 'number', placeholder: 'Ej: 33' }] },
+            { id: 'cabin_filter', name: 'Filtro de Cabina', intervalKm: 20000, icon: 'ph-file-text' },
+            { id: 'engine_filter', name: 'Filtro de Motor', intervalKm: 40000, icon: 'ph-file-text' },
+            { id: 'brake_fluid', name: 'Líquido de Frenos', intervalKm: 40000, icon: 'ph-warning', fields: [{ id: 'fluidType', label: 'Tipo', type: 'text', placeholder: 'Ej: DOT 3...' }] },
+            { id: 'brakes', name: 'Balatas', intervalKm: 30000, icon: 'ph-warning', fields: [{ id: 'brakePads', label: 'Marca', type: 'text' }, { id: 'position', label: 'Eje', type: 'select', options: ['Delantero', 'Trasero', 'Ambos'] }] },
+            { id: 'spark_plugs', name: 'Bujías', intervalKm: 100000, icon: 'ph-wrench', fields: [{ id: 'plugBrand', label: 'Marca', type: 'text' }] },
+            { id: 'battery', name: 'Batería', intervalKm: 20000, icon: 'ph-lightning' }
+        ];
+
+        // --- ESTADO GLOBAL ---
+        let state = {
+            preferences: { theme: 'futuristic', color: 'cyan' },
+            profile: {
+                vehicle: { make: 'Kia', model: 'Soul', year: '2018' },
+                currentMileage: 0,
+                contact: { wantsAlerts: false, email: '', phone: '' },
+                services: {}
+            },
+            history: [],
+            activeTab: 'dashboard',
+            expandedLogId: null
+        };
+
+        // Inicializar servicios a 0
+        MAINTENANCE_TASKS.forEach(t => state.profile.services[t.id] = 0);
+
+        // --- PERSISTENCIA (IN-MEMORY / LOCALSTORAGE FALLBACK) ---
+        function loadData() {
+            const saved = localStorage.getItem('auto_telemetry_data');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                state.preferences = parsed.preferences || state.preferences;
+                state.profile = { ...state.profile, ...(parsed.profile || {}) };
+                state.history = parsed.history || [];
+            }
+            applyPreferences();
+            renderHeader();
+            renderAll();
+        }
+
+        function saveData() {
+            localStorage.setItem('auto_telemetry_data', JSON.stringify({
+                preferences: state.preferences,
+                profile: state.profile,
+                history: state.history
+            }));
+            applyPreferences(); // <-- CORRECCIÓN: Fuerza la actualización visual instantánea
+            renderHeader();
+            renderAll();
+        }
+
+        // --- LÓGICA DE INTERFAZ ---
+        function applyPreferences() {
+            const theme = THEMES[state.preferences.theme];
+            const color = COLORS[state.preferences.color];
+            
+            // Aplicar variables CSS en la raiz
+            const root = document.documentElement;
+            for (const [key, value] of Object.entries(theme.vars)) {
+                root.style.setProperty(key, value);
+            }
+            root.style.setProperty('--color-accent', color.rgb);
+        }
+
+        function renderHeader() {
+            document.getElementById('display-make').textContent = state.profile.vehicle.make;
+            document.getElementById('display-model').textContent = state.profile.vehicle.model;
+            document.getElementById('display-year').textContent = state.profile.vehicle.year;
+            document.getElementById('input-global-km').value = state.profile.currentMileage || '';
+            
+            const alertInd = document.getElementById('alert-indicator');
+            if(state.profile.contact.wantsAlerts) alertInd.classList.remove('hidden');
+            else alertInd.classList.add('hidden');
+        }
+
+        function calculateTaskStatuses() {
+            return MAINTENANCE_TASKS.map(task => {
+                const lastKm = state.profile.services[task.id] || 0;
+                const nextKm = lastKm + task.intervalKm;
+                const remainingKm = nextKm - state.profile.currentMileage;
+                const progressPercent = Math.min(100, Math.max(0, ((state.profile.currentMileage - lastKm) / task.intervalKm) * 100));
+
+                let status = 'good';
+                if (remainingKm < 0) status = 'overdue';
+                else if (remainingKm <= 1500) status = 'soon';
+
+                return { ...task, lastKm, nextKm, remainingKm, progressPercent, status };
+            }).sort((a, b) => a.remainingKm - b.remainingKm);
+        }
+
+        function renderDashboard() {
+            const container = document.getElementById('view-dashboard');
+            const tasks = calculateTaskStatuses();
+            
+            container.innerHTML = tasks.map(task => {
+                let statusClasses, progressColor, statusText;
+                if(task.status === 'overdue') {
+                    statusClasses = 'text-rose-500 bg-rose-500/10 border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.15)]';
+                    progressColor = 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]';
+                    statusText = 'VENCIDO';
+                } else if(task.status === 'soon') {
+                    statusClasses = 'text-amber-500 bg-amber-500/10 border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.15)]';
+                    progressColor = 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]';
+                    statusText = 'PRÓXIMO';
+                } else {
+                    statusClasses = 'text-accent bg-accent/10 border-accent/20 shadow-glow';
+                    progressColor = 'bg-accent shadow-[0_0_10px_rgb(var(--color-accent)/0.8)]';
+                    statusText = 'ÓPTIMO';
+                }
+
+                return `
+                <article class="bg-themeCard rounded-2xl border border-themeBorder overflow-hidden shadow-sm group hover:border-accent/30 transition-all duration-300 hover:shadow-glow">
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-4 gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2.5 rounded-xl border transition-colors duration-500 ${task.status === 'overdue' ? 'bg-rose-500/10 border-rose-500/30 text-rose-500' : 'bg-themeInput border-themeBorder text-accent opacity-80 group-hover:opacity-100'}">
+                                    <i class="ph ${task.icon} text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-themeTitle text-sm leading-tight tracking-wide transition-colors">${task.name}</h3>
+                                    <p class="text-xs text-themeMuted mt-0.5 font-mono">Ciclo: ${task.intervalKm.toLocaleString()} km</p>
+                                </div>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border font-mono tracking-wider transition-colors ${statusClasses}">
+                                ${statusText}
+                            </span>
+                        </div>
+
+                        <div class="bg-themeSubCard p-4 rounded-xl border border-themeBorder transition-colors duration-500">
+                            <div class="flex justify-between text-sm mb-2 items-end">
+                                <span class="text-themeMuted font-medium text-xs">Siguiente evento:</span>
+                                <span class="font-mono text-themeTitle">${task.nextKm.toLocaleString()} <span class="opacity-50 text-xs">km</span></span>
+                            </div>
+                            <div class="w-full bg-themeInput rounded-full h-1.5 mb-2 overflow-hidden shadow-inner">
+                                <div class="h-full rounded-full transition-all duration-500 ease-out ${progressColor}" style="width: ${task.progressPercent}%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs mt-3">
+                                <span class="text-themeMuted font-mono">Último: ${task.lastKm === 0 ? '---' : task.lastKm.toLocaleString()}</span>
+                                <span class="font-mono ${task.status === 'overdue' ? 'text-rose-500' : 'text-accent'}">
+                                    ${task.remainingKm < 0 ? `-${Math.abs(task.remainingKm).toLocaleString()} km` : `+${task.remainingKm.toLocaleString()} km`}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-5 pb-5 pt-0">
+                        <button data-task-id="${task.id}" class="btn-open-log w-full py-2.5 px-4 bg-themeSubCard border border-themeBorder rounded-xl text-sm font-bold text-themeMain hover:bg-themePanel hover:text-accent transition-all flex items-center justify-center gap-2">
+                            <i class="ph ph-plus"></i> INIT REGISTRO
+                        </button>
+                    </div>
+                </article>`;
+            }).join('');
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-container');
+            if (state.history.length === 0) {
+                container.innerHTML = `
+                    <div class="p-12 text-center text-themeMuted">
+                        <i class="ph ph-pen-nib text-4xl opacity-50 block mb-4"></i>
+                        <p class="font-mono text-sm uppercase tracking-widest">Base de datos vacía</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = state.history.map(log => {
+                const isExpanded = state.expandedLogId === log.id;
+                const taskDef = MAINTENANCE_TASKS.find(t => t.id === log.taskId);
+                const icon = taskDef ? taskDef.icon : 'ph-wrench';
+                
+                let detailsHtml = '';
+                if (log.details && Object.keys(log.details).length > 0) {
+                    const detailItems = Object.entries(log.details).map(([key, value]) => {
+                        const fieldDef = taskDef?.fields?.find(f => f.id === key);
+                        if (!value) return '';
+                        return `
+                            <div>
+                                <span class="text-themeMuted text-[10px] uppercase tracking-widest block mb-0.5 font-mono">${fieldDef ? fieldDef.label : key}</span>
+                                <span class="font-semibold text-themeTitle">${value}</span>
+                            </div>`;
+                    }).join('');
+                    if(detailItems) detailsHtml = `<div class="mb-3 pb-3 border-b border-themeBorder grid grid-cols-2 gap-y-3 gap-x-4">${detailItems}</div>`;
+                }
+
+                const notesHtml = log.notes ? `
+                    <div>
+                        <span class="text-themeMuted text-[10px] uppercase tracking-widest block mb-1 font-mono">Comentarios / Notas:</span>
+                        <p class="text-themeMain bg-themeSubCard p-3 rounded-lg border border-themeBorder italic text-xs leading-relaxed border-l-2 border-l-accent">${log.notes}</p>
+                    </div>` : `<span class="text-themeMuted text-xs italic font-mono">Sin notas adicionales registradas.</span>`;
+
+                const costHtml = log.cost ? `
+                    <div class="mt-3 pt-3 border-t border-themeBorder sm:hidden">
+                        <span class="text-themeMuted text-xs mr-2 font-mono">Costo:</span>
+                        <span class="font-bold font-mono text-emerald-500">$${parseFloat(log.cost).toLocaleString()}</span>
+                    </div>` : '';
+
+                return `
+                <div class="hover:bg-themeSubCard transition-colors">
+                    <div class="btn-toggle-log p-4 sm:p-5 flex items-center justify-between cursor-pointer group" data-log-id="${log.id}">
+                        <div class="flex items-center gap-4">
+                            <div class="hidden sm:flex bg-themeInput p-2.5 rounded-xl border border-themeBorder text-themeMuted group-hover:border-accent/30 group-hover:text-accent group-hover:shadow-glow transition-all">
+                                <i class="ph ${icon} text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-themeTitle text-sm sm:text-base tracking-wide">${log.taskName}</h4>
+                                <div class="flex items-center gap-2 mt-1 font-mono">
+                                    <span class="text-xs text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded">${log.km.toLocaleString()} km</span>
+                                    <span class="text-xs text-themeMuted flex items-center gap-1"><i class="ph ph-calendar text-sm"></i>${new Date(log.date).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            ${log.cost ? `<span class="font-mono font-bold text-emerald-500 text-sm hidden sm:block">$${parseFloat(log.cost).toLocaleString()}</span>` : ''}
+                            <i class="ph ph-caret-down text-xl text-themeMuted transition-transform ${isExpanded ? 'rotate-180 text-accent' : ''}"></i>
+                        </div>
+                    </div>
+                    ${isExpanded ? `
+                    <div class="px-4 sm:px-5 pb-5 pt-0 pl-4 sm:pl-[76px] animate-in slide-in-from-top-2 duration-200">
+                        <div class="bg-black/5 border border-themeBorder rounded-xl p-4 text-sm shadow-inner">
+                            ${detailsHtml}
+                            ${notesHtml}
+                            ${costHtml}
+                        </div>
+                    </div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderHistory();
+            renderSettingsModal();
+        }
+
+        // --- RENDER MODALS ---
+        function renderSettingsModal() {
+            const themeContainer = document.getElementById('theme-selector');
+            themeContainer.innerHTML = Object.entries(THEMES).map(([key, theme]) => `
+                <button type="button" class="btn-set-theme py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${state.preferences.theme === key ? 'border-accent bg-accent/10 text-accent shadow-glow' : 'border-themeBorder text-themeMuted hover:text-themeTitle'}" data-theme="${key}">
+                    ${theme.name}
+                </button>
+            `).join('');
+
+            const colorContainer = document.getElementById('color-selector');
+            colorContainer.innerHTML = Object.entries(COLORS).map(([key, color]) => `
+                <button type="button" class="btn-set-color w-10 h-10 rounded-full transition-all duration-300 ${state.preferences.color === key ? 'scale-125 shadow-md border-2 border-white z-10' : 'hover:scale-110 opacity-60 hover:opacity-100'}" style="background-color: ${color.hex}" data-color="${key}"></button>
+            `).join('');
+        }
+
+        function renderProfileModal() {
+            const makeSelect = document.getElementById('select-make');
+            const modelSelect = document.getElementById('select-model');
+            const yearSelect = document.getElementById('select-year');
+
+            makeSelect.innerHTML = Object.keys(CAR_DATABASE).map(m => `<option value="${m}" ${state.profile.vehicle.make === m ? 'selected' : ''}>${m}</option>`).join('');
+            
+            const currentModels = CAR_DATABASE[state.profile.vehicle.make] || [];
+            modelSelect.innerHTML = currentModels.map(m => `<option value="${m}" ${state.profile.vehicle.model === m ? 'selected' : ''}>${m}</option>`).join('');
+
+            yearSelect.innerHTML = YEARS.map(y => `<option value="${y}" ${state.profile.vehicle.year == y ? 'selected' : ''}>${y}</option>`).join('');
+        }
+
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 200);
+        }
+
+        // --- EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+
+            // Tabs
+            document.getElementById('tab-btn-dashboard').addEventListener('click', () => {
+                state.activeTab = 'dashboard';
+                document.getElementById('view-dashboard').classList.remove('hidden');
+                document.getElementById('view-history').classList.add('hidden');
+                document.getElementById('tab-btn-dashboard').className = "flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 bg-themePanel text-accent shadow-sm border border-themeBorder";
+                document.getElementById('tab-btn-history').className = "flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 text-themeMuted hover:text-themeTitle";
+            });
+
+            document.getElementById('tab-btn-history').addEventListener('click', () => {
+                state.activeTab = 'history';
+                document.getElementById('view-dashboard').classList.add('hidden');
+                document.getElementById('view-history').classList.remove('hidden');
+                document.getElementById('tab-btn-history').className = "flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 bg-themePanel text-accent shadow-sm border border-themeBorder";
+                document.getElementById('tab-btn-dashboard').className = "flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 text-themeMuted hover:text-themeTitle";
+            });
+
+            // Global Odometer Update
+            document.getElementById('input-global-km').addEventListener('change', (e) => {
+                const val = parseInt(e.target.value);
+                state.profile.currentMileage = isNaN(val) ? 0 : val;
+                saveData();
+            });
+
+            // Modals Openers
+            document.getElementById('btn-open-settings').addEventListener('click', () => { renderSettingsModal(); openModal('modal-settings'); });
+            document.getElementById('btn-open-profile').addEventListener('click', () => { renderProfileModal(); openModal('modal-profile'); });
+            document.getElementById('btn-open-alerts').addEventListener('click', () => { 
+                document.getElementById('input-wants-alerts').checked = state.profile.contact.wantsAlerts;
+                document.getElementById('input-email').value = state.profile.contact.email;
+                document.getElementById('input-phone').value = state.profile.contact.phone;
+                document.getElementById('alerts-fields').style.display = state.profile.contact.wantsAlerts ? 'block' : 'none';
+                openModal('modal-alerts'); 
+            });
+
+            // Alerts Logic
+            document.getElementById('input-wants-alerts').addEventListener('change', (e) => {
+                document.getElementById('alerts-fields').style.display = e.target.checked ? 'block' : 'none';
+            });
+
+            document.getElementById('form-alerts').addEventListener('submit', (e) => {
+                e.preventDefault();
+                state.profile.contact = {
+                    wantsAlerts: document.getElementById('input-wants-alerts').checked,
+                    email: document.getElementById('input-email').value,
+                    phone: document.getElementById('input-phone').value
+                };
+                saveData();
+                closeModal('modal-alerts');
+            });
+
+            // Close Modals
+            document.querySelectorAll('.btn-close-modal').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    closeModal(e.target.closest('.fixed').id);
+                });
+            });
+
+            // Event Delegation para botones dinámicos (Registrar, Expander Historial, Temas)
+            document.addEventListener('click', (e) => {
+                const btnLog = e.target.closest('.btn-open-log');
+                if (btnLog) {
+                    const taskId = btnLog.dataset.taskId;
+                    const task = MAINTENANCE_TASKS.find(t => t.id === taskId);
+                    
+                    document.getElementById('log-task-id').value = task.id;
+                    document.getElementById('log-task-icon').className = `ph ${task.icon} text-xl`;
+                    document.getElementById('log-task-name').textContent = task.name;
+                    
+                    const suggestedKm = state.profile.currentMileage > (state.profile.services[task.id] || 0) ? state.profile.currentMileage : '';
+                    document.getElementById('log-km').value = suggestedKm;
+                    document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
+                    document.getElementById('log-cost').value = '';
+                    document.getElementById('log-notes').value = '';
+
+                    const fieldsContainer = document.getElementById('log-fields-container');
+                    const dynamicWrapper = document.getElementById('log-dynamic-fields');
+                    
+                    if (task.fields && task.fields.length > 0) {
+                        dynamicWrapper.classList.remove('hidden');
+                        fieldsContainer.innerHTML = task.fields.map(field => {
+                            if(field.type === 'select') {
+                                return `
+                                    <div class="mb-3">
+                                        <label class="block text-[10px] font-semibold text-themeMuted mb-1 uppercase tracking-wide">${field.label}</label>
+                                        <select id="field-${field.id}" data-field-id="${field.id}" class="dynamic-field w-full p-2 border border-themeBorder rounded-lg text-sm bg-themeInput text-themeTitle focus:border-accent outline-none appearance-none">
+                                            <option value="">Seleccionar...</option>
+                                            ${field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                                        </select>
+                                    </div>`;
+                            }
+                            return `
+                                <div class="mb-3">
+                                    <label class="block text-[10px] font-semibold text-themeMuted mb-1 uppercase tracking-wide">${field.label}</label>
+                                    <input type="${field.type}" id="field-${field.id}" data-field-id="${field.id}" placeholder="${field.placeholder || ''}" class="dynamic-field w-full p-2 border border-themeBorder rounded-lg text-sm bg-themeInput text-themeTitle focus:border-accent outline-none placeholder:text-themeMuted" />
+                                </div>`;
+                        }).join('');
+                    } else {
+                        dynamicWrapper.classList.add('hidden');
+                        fieldsContainer.innerHTML = '';
+                    }
+
+                    openModal('modal-log');
+                }
+
+                const btnToggleLog = e.target.closest('.btn-toggle-log');
+                if (btnToggleLog) {
+                    const id = parseInt(btnToggleLog.dataset.logId);
+                    state.expandedLogId = state.expandedLogId === id ? null : id;
+                    renderHistory();
+                }
+
+                const btnTheme = e.target.closest('.btn-set-theme');
+                if (btnTheme) {
+                    state.preferences.theme = btnTheme.dataset.theme;
+                    saveData();
+                }
+
+                const btnColor = e.target.closest('.btn-set-color');
+                if (btnColor) {
+                    state.preferences.color = btnColor.dataset.color;
+                    saveData();
+                }
+            });
+
+            // Forms Submit
+            document.getElementById('form-profile').addEventListener('submit', (e) => {
+                e.preventDefault();
+                state.profile.vehicle.make = document.getElementById('select-make').value;
+                state.profile.vehicle.model = document.getElementById('select-model').value;
+                state.profile.vehicle.year = document.getElementById('select-year').value;
+                saveData();
+                closeModal('modal-profile');
+            });
+
+            document.getElementById('select-make').addEventListener('change', (e) => {
+                const make = e.target.value;
+                const models = CAR_DATABASE[make] || [];
+                document.getElementById('select-model').innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+            });
+
+            document.getElementById('form-log').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const taskId = document.getElementById('log-task-id').value;
+                const taskDef = MAINTENANCE_TASKS.find(t => t.id === taskId);
+                const km = parseInt(document.getElementById('log-km').value);
+                
+                if(isNaN(km) || km < 0) return;
+
+                const details = {};
+                document.querySelectorAll('.dynamic-field').forEach(input => {
+                    details[input.dataset.fieldId] = input.value;
+                });
+
+                const newLog = {
+                    id: Date.now(),
+                    taskId: taskId,
+                    taskName: taskDef.name,
+                    km: km,
+                    date: document.getElementById('log-date').value,
+                    notes: document.getElementById('log-notes').value,
+                    cost: document.getElementById('log-cost').value,
+                    details: details,
+                    timestamp: new Date().toISOString()
+                };
+
+                state.profile.services[taskId] = km;
+                if(km > state.profile.currentMileage) state.profile.currentMileage = km;
+                
+                state.history.push(newLog);
+                state.history.sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                saveData();
+                closeModal('modal-log');
+            });
+
+        });
+    </script>
+</body>
+</html>
