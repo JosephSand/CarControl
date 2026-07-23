@@ -1,9 +1,9 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Control de Mantenimiento - Kia Soul</title>
+  <title>Control de Mantenimiento - Kia Soul 2018</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased p-4 md:p-8">
@@ -20,18 +20,19 @@
       <!-- Sección: Configuración de Alertas -->
       <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
         <h2 class="font-semibold text-slate-700 mb-3 flex items-center">
-          <span>🔔 Notificaciones de Resend</span>
+          <span>🔔 Notificaciones Automáticas</span>
         </h2>
         
         <label class="flex items-center space-x-3 mb-3 cursor-pointer">
           <input type="checkbox" id="wantsAlerts" class="form-checkbox h-5 w-5 text-sky-500 rounded">
-          <span class="text-sm font-medium text-slate-700">Activar alertas por correo</span>
+          <span class="text-sm font-medium text-slate-700">Activar alertas</span>
         </label>
 
         <div id="alertFields" class="space-y-3 hidden">
           <div>
             <label class="block text-xs text-slate-500 mb-1">Nombre del Conductor</label>
-            <input type="text" id="contactName" placeholder="Ej. José Sandoval" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <!-- El placeholder incluye tu nombre por defecto para guiarte -->
+            <input type="text" id="contactName" placeholder="Ej. Jose Sandoval" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
           </div>
           <div>
             <label class="block text-xs text-slate-500 mb-1">Correo Electrónico</label>
@@ -63,18 +64,20 @@
     </div>
   </div>
 
-  <!-- MODAL: Registrar Servicio -->
+  <!-- MODAL: Elegir Fecha de Próximo Servicio -->
   <div id="serviceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-      <h3 class="text-lg font-bold text-slate-800 mb-1" id="modalTaskName">Cambio de Aceite</h3>
-      <p class="text-sm text-slate-500 mb-4">Registra este servicio como completado.</p>
+      <h3 class="text-lg font-bold text-slate-800 mb-1" id="modalTaskName">Servicio</h3>
+      <p class="text-sm text-slate-500 mb-4">¿Cuándo toca el próximo mantenimiento?</p>
       
       <div class="space-y-4">
+        <!-- Opción 1: Ingreso Manual -->
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Próximo servicio tocará el:</label>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Elige una fecha manual:</label>
           <input type="date" id="nextServiceDate" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
         </div>
         
+        <!-- Opción 2: Botón Automático -->
         <button id="autoDateBtn" class="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm py-2 rounded-md hover:bg-emerald-100 transition font-medium">
           + Calcular automático (6 meses)
         </button>
@@ -82,18 +85,18 @@
 
       <div class="mt-6 flex space-x-3">
         <button id="closeModalBtn" class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-md hover:bg-slate-300 transition text-sm font-medium">Cancelar</button>
-        <button id="confirmServiceBtn" class="flex-1 bg-sky-500 text-white py-2 rounded-md hover:bg-sky-600 transition text-sm font-medium">Guardar</button>
+        <button id="confirmServiceBtn" class="flex-1 bg-sky-500 text-white py-2 rounded-md hover:bg-sky-600 transition text-sm font-medium">Guardar Fecha</button>
       </div>
     </div>
   </div>
 
-  <!-- SCRIPT CON FIREBASE -->
+  <!-- SCRIPT CON FIREBASE Y LA LÓGICA DE LA INTERFAZ -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-    // 1. TUS LLAVES DE FIREBASE
+    // Tu configuración exacta de Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyD4mWBQ1YWHUMXwoI5tNYRLpNbTrol77dA",
       authDomain: "controlmantenimientoapp-7d55b.firebaseapp.com",
@@ -107,7 +110,6 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // 2. LISTA DE TAREAS
     const MAINTENANCE_TASKS = [
       { id: 'oil', name: 'Cambio de Aceite y Filtro' },
       { id: 'tires', name: 'Rotación/Cambio Llantas' },
@@ -122,23 +124,20 @@
     let currentUserDoc = null;
     let selectedTaskId = null;
 
-    // 3. INICIAR SESIÓN Y ESCUCHAR DATOS
+    // INICIAR SESIÓN Y ESCUCHAR DATOS
     signInAnonymously(auth);
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // En Firestore, el CronJob busca collectionGroup('profile')
         currentUserDoc = doc(db, 'usuarios', user.uid, 'profile', 'data');
         
         onSnapshot(currentUserDoc, (docSnap) => {
           if (docSnap.exists()) {
             llenarInterfaz(docSnap.data());
           } else {
-            // Crear documento por primera vez
             setDoc(currentUserDoc, {
               vehicle: { make: "Kia", model: "Soul 2018" },
               currentMileage: 0,
               contact: { name: "", email: "", wantsAlerts: false },
-              services: {},
               nextDates: {}
             }, { merge: true });
           }
@@ -146,7 +145,7 @@
       }
     });
 
-    // 4. LLENAR PANTALLA CON LOS DATOS DE FIREBASE
+    // LLENAR PANTALLA CON LOS DATOS
     function llenarInterfaz(data) {
       document.getElementById('currentMileage').value = data.currentMileage || '';
       
@@ -170,14 +169,14 @@
             <p class="text-xs text-slate-500 mt-1">Próximo: <span class="${nextDate !== 'No agendado' ? 'font-semibold text-sky-600' : ''}">${nextDate}</span></p>
           </div>
           <button onclick="abrirModal('${task.id}', '${task.name}')" class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-200 transition">
-            Completar
+            Agendar
           </button>
         `;
         tasksContainer.appendChild(div);
       });
     }
 
-    // 5. INTERACCIONES DE LA INTERFAZ
+    // INTERACCIONES PRINCIPALES
     const alertCheckbox = document.getElementById('wantsAlerts');
     const alertFields = document.getElementById('alertFields');
     
@@ -195,8 +194,7 @@
           name: document.getElementById('contactName').value,
           email: document.getElementById('contactEmail').value
         }
-      }, { merge: true });
-      alert("Datos de contacto guardados.");
+      }, { merge: true }).then(() => alert("Datos de contacto guardados."));
     });
 
     document.getElementById('saveMileageBtn').addEventListener('click', () => {
@@ -206,7 +204,7 @@
       }
     });
 
-    // 6. LÓGICA DEL MODAL (VENTANA EMERGENTE)
+    // LÓGICA DEL MODAL (VENTANA DE FECHA)
     const modal = document.getElementById('serviceModal');
     
     window.abrirModal = function(id, name) {
@@ -220,28 +218,23 @@
       modal.classList.add('hidden');
     });
 
-    // Calcular Fecha Automática (6 meses)
+    // Botón para cálculo de fecha automática
     document.getElementById('autoDateBtn').addEventListener('click', () => {
       const hoy = new Date();
       hoy.setMonth(hoy.getMonth() + 6);
-      const fechaFormateada = hoy.toISOString().split('T')[0]; // Extrae "YYYY-MM-DD"
+      const fechaFormateada = hoy.toISOString().split('T')[0];
       document.getElementById('nextServiceDate').value = fechaFormateada;
     });
 
-    // Guardar el servicio en Firestore
+    // Botón para confirmar la fecha en Firebase
     document.getElementById('confirmServiceBtn').addEventListener('click', () => {
       const selectedDate = document.getElementById('nextServiceDate').value;
-      const currentKm = parseInt(document.getElementById('currentMileage').value) || 0;
-
       if(!selectedDate) {
-        alert("Por favor selecciona o calcula una fecha.");
+        alert("Por favor selecciona una fecha o presiona el botón automático.");
         return;
       }
 
       setDoc(currentUserDoc, {
-        services: {
-          [selectedTaskId]: currentKm
-        },
         nextDates: {
           [selectedTaskId]: selectedDate
         }
@@ -249,7 +242,6 @@
         modal.classList.add('hidden');
       });
     });
-
   </script>
 </body>
 </html>
