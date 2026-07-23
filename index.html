@@ -1,15 +1,17 @@
-
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Mantenimiento | Telemetría</title>
+    <title>Telemetría | Control de Mantenimiento</title>
     
+    <!-- Fuentes y Recursos Visuales -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -35,9 +37,10 @@
             }
         }
     </script>
+    
     <style>
         :root {
-            /* Valores por defecto (Futurista / Cyan) */
+            /* Tema por defecto (Futurista / Cyan) - SIN COMAS PARA EVITAR ERRORES */
             --bg-app: #020617;
             --bg-panel: rgba(15, 23, 42, 0.8);
             --bg-card: rgba(15, 23, 42, 0.5);
@@ -47,7 +50,7 @@
             --text-main: #cbd5e1;
             --text-title: #f1f5f9;
             --text-muted: #64748b;
-            --color-accent: 14 165 233;
+            --color-accent: 14 165 233; /* Formato RGB moderno sin comas */
             --font-mono: 'Space Mono';
             --app-bg-image: radial-gradient(ellipse 80% 80% at 50% -20%, rgba(255,255,255,0.05), rgba(0,0,0,0));
         }
@@ -57,19 +60,21 @@
             background-image: var(--app-bg-image);
             color: var(--text-main);
             transition: background-color 0.5s ease, color 0.5s ease;
+            min-height: 100vh;
         }
 
-        /* Utilidades personalizadas */
+        /* Efectos Glassmorphism y utilidades */
         .glass-panel { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 10px; }
         
+        /* Brillos Neón */
         .shadow-glow { box-shadow: 0 0 15px rgb(var(--color-accent) / 0.2); }
         .shadow-glow-hover:hover { box-shadow: 0 0 25px rgb(var(--color-accent) / 0.3); border-color: rgb(var(--color-accent) / 0.5); }
     </style>
 </head>
-<body class="min-h-screen font-sans pb-12 selection:bg-accent/30 selection:text-white transition-colors duration-500">
+<body class="font-sans pb-12 selection:bg-accent/30 selection:text-white">
 
     <!-- HEADER -->
     <header class="bg-themePanel glass-panel border-b border-themeBorder sticky top-0 z-10 shadow-sm transition-colors duration-500">
@@ -79,24 +84,26 @@
                     <i class="ph ph-car-profile text-2xl text-accent"></i>
                 </div>
                 <div>
-                    <div id="btn-open-profile" class="flex items-center gap-2 group cursor-pointer">
+                    <div id="btn-open-profile" class="flex items-center gap-2 group cursor-pointer" title="Configurar Vehículo">
                         <h1 class="text-xl sm:text-2xl font-bold leading-none tracking-tight text-themeTitle group-hover:text-accent transition-colors drop-shadow-md">
-                            <span id="display-make">Kia</span> <span id="display-model">Soul</span> 
-                            <span id="display-year" class="text-accent opacity-80 font-mono ml-1 text-lg">2018</span>
+                            <span id="display-make">...</span> <span id="display-model"></span> 
+                            <span id="display-year" class="text-accent opacity-80 font-mono ml-1 text-lg"></span>
                         </h1>
                         <i class="ph ph-pencil-simple text-themeMuted group-hover:text-accent transition-colors opacity-0 group-hover:opacity-100"></i>
                     </div>
-                    <p class="text-accent opacity-60 text-xs sm:text-sm mt-1 font-mono tracking-widest uppercase">Sistema de Telemetría</p>
+                    <p class="text-accent opacity-60 text-xs sm:text-sm mt-1 font-mono tracking-widest uppercase">
+                        Sincronizado en la nube <i class="ph ph-cloud-check inline-block align-middle ml-1"></i>
+                    </p>
                 </div>
             </div>
             
             <div class="flex items-center gap-2">
-                <button id="btn-open-alerts" class="p-2.5 rounded-full hover:bg-black/10 transition-colors text-themeMuted hover:text-accent relative" title="Alertas">
+                <button id="btn-open-alerts" class="p-2.5 rounded-full hover:bg-black/10 transition-colors text-themeMuted hover:text-accent relative" title="Configurar Alertas">
                     <i class="ph ph-bell text-2xl"></i>
                     <span id="alert-indicator" class="hidden absolute top-2 right-2 w-2 h-2 rounded-full bg-accent shadow-[0_0_5px_rgb(var(--color-accent)/0.8)] animate-pulse"></span>
                 </button>
-                <button id="btn-open-settings" class="p-2.5 rounded-full hover:bg-black/10 transition-colors text-themeMuted hover:text-accent" title="Ajustes">
-                    <i class="ph ph-gear text-2xl animate-[spin_10s_linear_infinite]"></i>
+                <button id="btn-open-settings" class="p-2.5 rounded-full hover:bg-black/10 transition-colors text-themeMuted hover:text-accent" title="Personalizar App">
+                    <i class="ph ph-palette text-2xl"></i>
                 </button>
             </div>
         </div>
@@ -111,7 +118,7 @@
                 <h2 class="text-lg font-bold text-themeTitle flex items-center gap-2 tracking-wide transition-colors">
                     ODÓMETRO GLOBAL
                 </h2>
-                <p class="text-sm text-themeMuted mt-0.5 font-mono">Variables base del sistema.</p>
+                <p class="text-sm text-themeMuted mt-0.5 font-mono">Actualiza para recalcular el sistema.</p>
             </div>
             <div class="flex items-center max-w-xs w-full relative z-10">
                 <input type="number" id="input-global-km" placeholder="00000" class="block w-full pl-4 pr-16 py-3 text-2xl font-mono text-accent border border-themeBorder rounded-xl focus:ring-1 focus:ring-accent focus:border-accent transition-all bg-themeInput placeholder:text-themeMuted outline-none shadow-inner" />
@@ -129,28 +136,34 @@
             </button>
         </nav>
 
-        <!-- VISTAS -->
+        <!-- CONTENEDOR PRINCIPAL: ESTADO DE PIEZAS -->
         <div id="view-dashboard" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            <!-- Renderizado por JS -->
+            <!-- Cargando Animación... -->
+            <div class="col-span-1 md:col-span-2 text-center p-10">
+                 <i class="ph ph-spinner-gap text-4xl text-accent animate-spin inline-block mb-2"></i>
+                 <p class="text-themeMuted font-mono text-sm tracking-widest uppercase mt-3">Conectando a la Nube...</p>
+            </div>
         </div>
 
+        <!-- CONTENEDOR SECUNDARIO: HISTORIAL -->
         <div id="view-history" class="hidden">
             <section class="bg-themePanel rounded-2xl border border-themeBorder overflow-hidden transition-colors duration-500">
                 <div class="p-5 border-b border-themeBorder bg-themeSubCard flex items-center gap-3 transition-colors">
                     <i class="ph ph-clock-counter-clockwise text-xl text-accent opacity-80"></i>
                     <div>
-                        <h2 class="text-base font-bold text-themeTitle tracking-wide">BITÁCORA DEL SISTEMA</h2>
+                        <h2 class="text-base font-bold text-themeTitle tracking-wide">BITÁCORA DE MANTENIMIENTO</h2>
                     </div>
                 </div>
                 <div id="history-container" class="divide-y divide-themeBorder">
-                    <!-- Renderizado por JS -->
+                    <!-- Renderizado Dinámico vía JavaScript -->
                 </div>
             </section>
         </div>
-
     </main>
 
-    <!-- MODAL: SETTINGS -->
+    <!-- ================== MODALES ================== -->
+
+    <!-- MODAL: SETTINGS (PERSONALIZAR) -->
     <div id="modal-settings" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity">
         <div class="bg-themePanel border border-themeBorder rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200">
             <div class="px-5 py-4 border-b border-themeBorder flex justify-between items-center bg-themeSubCard">
@@ -165,19 +178,19 @@
                     <div id="theme-selector" class="grid grid-cols-2 gap-3"></div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-accent mb-4 uppercase tracking-widest font-mono">Color de Acento</label>
+                    <label class="block text-xs font-bold text-accent mb-4 uppercase tracking-widest font-mono">Color de Acento Holográfico</label>
                     <div id="color-selector" class="flex gap-4 justify-center"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: PROFILE -->
+    <!-- MODAL: PROFILE (VEHÍCULO) -->
     <div id="modal-profile" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity">
         <div class="bg-themePanel border border-themeBorder rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200">
             <div class="px-5 py-4 border-b border-themeBorder flex justify-between items-center bg-themeSubCard">
                 <h3 class="font-bold text-themeTitle flex items-center gap-2 tracking-wide">
-                    <i class="ph ph-car-profile text-xl text-accent"></i> CONFG. SISTEMA
+                    <i class="ph ph-car-profile text-xl text-accent"></i> INFO. VEHÍCULO
                 </h3>
                 <button class="btn-close-modal p-1.5 rounded-full text-themeMuted hover:text-themeTitle transition-colors"><i class="ph ph-x text-lg"></i></button>
             </div>
@@ -195,26 +208,28 @@
                     <select id="select-year" class="w-full p-2.5 border border-themeBorder rounded-xl text-sm font-semibold bg-themeInput text-themeTitle focus:ring-1 focus:ring-accent focus:border-accent outline-none appearance-none"></select>
                 </div>
                 <div class="pt-4">
-                    <button type="submit" class="w-full py-3 bg-accent text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-glow tracking-wider">APLICAR CAMBIOS</button>
+                    <button type="submit" id="btn-save-profile" class="w-full py-3 bg-accent text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-glow tracking-wider flex justify-center items-center gap-2">
+                        GUARDAR EN NUBE <i class="ph ph-cloud-arrow-up text-lg"></i>
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL: ALERTAS -->
+    <!-- MODAL: ALERTAS Y CONTACTO -->
     <div id="modal-alerts" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity">
         <div class="bg-themePanel border border-themeBorder rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200">
             <div class="px-5 py-4 border-b border-themeBorder flex justify-between items-center bg-themeSubCard">
                 <h3 class="font-bold text-themeTitle flex items-center gap-2 tracking-wide">
-                    <i class="ph ph-bell text-xl text-accent"></i> ALERTAS
+                    <i class="ph ph-bell text-xl text-accent"></i> ALERTAS AUTOMÁTICAS
                 </h3>
                 <button class="btn-close-modal p-1.5 rounded-full text-themeMuted hover:text-themeTitle transition-colors"><i class="ph ph-x text-lg"></i></button>
             </div>
             <form id="form-alerts" class="p-5 space-y-5">
                 <div class="flex items-center justify-between p-4 bg-themeInput border border-themeBorder rounded-xl">
                     <div class="flex flex-col">
-                        <span class="text-sm font-bold text-themeTitle">Notificaciones</span>
-                        <span class="text-xs text-themeMuted font-mono">Activar recordatorios</span>
+                        <span class="text-sm font-bold text-themeTitle">Notificaciones Activas</span>
+                        <span class="text-xs text-themeMuted font-mono">Recordatorios periódicos</span>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="input-wants-alerts" class="sr-only peer">
@@ -227,33 +242,35 @@
                         <input type="email" id="input-email" placeholder="usuario@correo.com" class="w-full p-2.5 border border-themeBorder rounded-xl text-sm bg-themeInput text-themeTitle focus:ring-1 focus:ring-accent outline-none" />
                     </div>
                     <div>
-                        <label class="flex items-center gap-2 text-xs font-bold text-accent mb-1.5 uppercase tracking-widest font-mono"><i class="ph ph-device-mobile"></i> WhatsApp</label>
+                        <label class="flex items-center gap-2 text-xs font-bold text-accent mb-1.5 uppercase tracking-widest font-mono"><i class="ph ph-whatsapp-logo"></i> WhatsApp</label>
                         <input type="tel" id="input-phone" placeholder="+52 55 1234 5678" class="w-full p-2.5 border border-themeBorder rounded-xl text-sm bg-themeInput text-themeTitle focus:ring-1 focus:ring-accent outline-none" />
-                        <p class="text-[10px] text-themeMuted mt-1.5 italic">*Incluye código de país.</p>
+                        <p class="text-[10px] text-themeMuted mt-1.5 italic font-mono">*Incluye código de país.</p>
                     </div>
                 </div>
                 <div class="pt-2">
-                    <button type="submit" class="w-full py-3 bg-accent text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-glow tracking-wider">GUARDAR CONFIGURACIÓN</button>
+                    <button type="submit" id="btn-save-alerts" class="w-full py-3 bg-accent text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-glow tracking-wider">GUARDAR CONFIGURACIÓN</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL: REGISTRAR SERVICIO -->
+    <!-- MODAL: REGISTRAR SERVICIO LOG -->
     <div id="modal-log" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity">
         <div class="bg-themePanel border border-themeBorder rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-200">
             <div class="px-5 py-4 border-b border-themeBorder flex justify-between items-center bg-themeSubCard">
                 <h3 class="font-bold text-themeTitle flex items-center gap-2 tracking-wide">
-                    <i class="ph ph-pen-nib text-xl text-accent"></i> NUEVO REGISTRO
+                    <i class="ph ph-pen-nib text-xl text-accent"></i> REGISTRAR TAREA
                 </h3>
                 <button class="btn-close-modal p-1.5 rounded-full text-themeMuted hover:text-themeTitle transition-colors"><i class="ph ph-x text-lg"></i></button>
             </div>
             <form id="form-log" class="p-5 space-y-5 max-h-[80vh] overflow-y-auto custom-scrollbar">
                 <input type="hidden" id="log-task-id">
+                
                 <div class="flex items-center gap-3 p-3 bg-accent/10 border border-accent/30 rounded-xl text-accent shadow-glow">
                     <i id="log-task-icon" class="text-xl"></i>
                     <span id="log-task-name" class="font-bold text-sm tracking-wide"></span>
                 </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-accent mb-1.5 uppercase tracking-widest font-mono">Lectura (KM)</label>
@@ -264,34 +281,58 @@
                         <input type="date" id="log-date" required class="w-full p-2.5 border border-themeBorder rounded-xl text-sm font-semibold bg-themeInput text-themeMain focus:ring-1 focus:ring-accent outline-none" />
                     </div>
                 </div>
+
                 <div id="log-dynamic-fields" class="p-4 bg-themeSubCard border border-themeBorder rounded-xl space-y-4 hidden">
                     <h4 class="text-[10px] font-bold text-themeMuted uppercase tracking-widest mb-2 flex items-center gap-1.5 font-mono">
-                        <i class="ph ph-clipboard-text text-accent opacity-50"></i> Variables
+                        <i class="ph ph-clipboard-text text-accent opacity-50"></i> Variables Específicas
                     </h4>
                     <div id="log-fields-container"></div>
                 </div>
+
                 <div class="grid grid-cols-3 gap-4">
                     <div class="col-span-1">
                         <label class="block text-[10px] font-bold text-accent mb-1.5 uppercase tracking-widest font-mono">Costo ($)</label>
                         <input type="number" step="0.01" id="log-cost" placeholder="0.00" class="w-full p-2.5 border border-themeBorder rounded-xl text-sm font-mono font-bold bg-themeInput text-emerald-500 focus:ring-1 focus:ring-accent outline-none" />
                     </div>
                     <div class="col-span-2">
-                        <label class="block text-[10px] font-bold text-accent mb-1.5 uppercase tracking-widest font-mono">Notas</label>
+                        <label class="block text-[10px] font-bold text-accent mb-1.5 uppercase tracking-widest font-mono">Notas Adicionales</label>
                         <input type="text" id="log-notes" placeholder="Observaciones..." class="w-full p-2.5 border border-themeBorder rounded-xl text-sm bg-themeInput text-themeTitle focus:ring-1 focus:ring-accent outline-none placeholder:text-themeMuted" />
                     </div>
                 </div>
+
                 <div class="pt-4 flex gap-3">
                     <button type="button" class="btn-close-modal flex-1 py-3 bg-themeSubCard border border-themeBorder text-themeMain rounded-xl font-bold hover:bg-themePanel transition-colors tracking-wide">ABORTAR</button>
-                    <button type="submit" class="flex-1 py-3 bg-accent text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-glow flex items-center justify-center gap-2 tracking-wide">
-                        <i class="ph ph-floppy-disk text-lg"></i> EJECUTAR
+                    <button type="submit" id="btn-save-log" class="flex-1 py-3 bg-accent text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-glow flex items-center justify-center gap-2 tracking-wide">
+                        <i class="ph ph-floppy-disk text-lg"></i> ENVIAR A NUBE
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- ================== SCRIPT PRINCIPAL ================== -->
     <script type="module">
-        // --- CONSTANTES Y BASES DE DATOS ---
+        // Importamos Firebase desde los CDN oficiales (No NPM) para GitHub Pages
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, addDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // =========================================================================
+        // TU CONFIGURACIÓN EXACTA DE FIREBASE
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4mWBQ1YWHUMXwoI5tNYRLpNbTrol77dA",
+            authDomain: "controlmantenimientoapp-7d55b.firebaseapp.com",
+            projectId: "controlmantenimientoapp-7d55b",
+            storageBucket: "controlmantenimientoapp-7d55b.firebasestorage.app",
+            messagingSenderId: "1013852088342",
+            appId: "1:1013852088342:web:629f92647bc7d4ad9eed37",
+            measurementId: "G-NWM0V4BBDL"
+        };
+        // =========================================================================
+
+        // --- BASES DE DATOS VISUALES Y MODELOS ---
         const THEMES = {
             futuristic: { name: 'Futurista', vars: { '--bg-app': '#020617', '--bg-panel': 'rgba(15, 23, 42, 0.8)', '--bg-card': 'rgba(15, 23, 42, 0.5)', '--bg-input': '#020617', '--bg-subcard': 'rgba(15, 23, 42, 0.5)', '--border-color': '#1e293b', '--text-main': '#cbd5e1', '--text-title': '#f1f5f9', '--text-muted': '#64748b', '--font-mono': '"Space Mono", monospace', '--app-bg-image': 'radial-gradient(ellipse 80% 80% at 50% -20%, rgba(255,255,255,0.05), rgba(0,0,0,0))' }},
             minimalist: { name: 'Minimalista', vars: { '--bg-app': '#f8fafc', '--bg-panel': 'rgba(255, 255, 255, 0.9)', '--bg-card': '#ffffff', '--bg-input': '#f8fafc', '--bg-subcard': '#f1f5f9', '--border-color': '#e2e8f0', '--text-main': '#475569', '--text-title': '#0f172a', '--text-muted': '#94a3b8', '--font-mono': '"Inter", sans-serif', '--app-bg-image': 'none' }},
@@ -301,11 +342,11 @@
         };
 
         const COLORS = {
-            cyan: { name: 'Sky Cyan', hex: '#0ea5e9', rgb: '14 165 233' },
-            rose: { name: 'Rosa Neón', hex: '#f43f5e', rgb: '244 63 94' },
-            amber: { name: 'Ámbar', hex: '#f59e0b', rgb: '245 158 11' },
-            emerald: { name: 'Esmeralda', hex: '#10b981', rgb: '16 185 129' },
-            purple: { name: 'Púrpura', hex: '#a855f7', rgb: '168 85 247' }
+            cyan: { name: 'Sky Cyan', rgb: '14 165 233', hex: '#0ea5e9' },
+            rose: { name: 'Rosa Neón', rgb: '244 63 94', hex: '#f43f5e' },
+            amber: { name: 'Ámbar', rgb: '245 158 11', hex: '#f59e0b' },
+            emerald: { name: 'Esmeralda', rgb: '16 185 129', hex: '#10b981' },
+            purple: { name: 'Púrpura', rgb: '168 85 247', hex: '#a855f7' }
         };
 
         const CAR_DATABASE = {
@@ -329,8 +370,9 @@
             { id: 'battery', name: 'Batería', intervalKm: 20000, icon: 'ph-lightning' }
         ];
 
-        // --- ESTADO GLOBAL ---
+        // --- ESTADO Y VARIABLES GLOBALES ---
         let state = {
+            userId: null,
             preferences: { theme: 'futuristic', color: 'cyan' },
             profile: {
                 vehicle: { make: 'Kia', model: 'Soul', year: '2018' },
@@ -339,49 +381,108 @@
                 services: {}
             },
             history: [],
-            activeTab: 'dashboard',
             expandedLogId: null
         };
 
-        // Inicializar servicios a 0
+        // Relleno inicial de servicios en 0
         MAINTENANCE_TASKS.forEach(t => state.profile.services[t.id] = 0);
 
-        // --- PERSISTENCIA (IN-MEMORY / LOCALSTORAGE FALLBACK) ---
-        function loadData() {
-            const saved = localStorage.getItem('auto_telemetry_data');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                state.preferences = parsed.preferences || state.preferences;
-                state.profile = { ...state.profile, ...(parsed.profile || {}) };
-                state.history = parsed.history || [];
-            }
-            applyPreferences();
-            renderHeader();
-            renderAll();
+        // --- INICIALIZAR FIREBASE Y ESCUCHAR DATOS ---
+        let dbRef = null;
+        let unsubscribeProfile = null;
+        let unsubscribeHistory = null;
+
+        try {
+            const fbApp = initializeApp(firebaseConfig);
+            const fbAnalytics = getAnalytics(fbApp);
+            const fbAuth = getAuth(fbApp);
+            dbRef = getFirestore(fbApp);
+
+            // Logueo Anónimo (El usuario no pone clave, Firebase lo reconoce por su navegador)
+            signInAnonymously(fbAuth).catch((error) => {
+                console.error("Error Autenticando en Firebase (Verifica tus llaves):", error);
+            });
+
+            onAuthStateChanged(fbAuth, (user) => {
+                if (user) {
+                    console.log("Usuario Conectado a la Nube:", user.uid);
+                    state.userId = user.uid;
+                    listenToCloudData(user.uid);
+                }
+            });
+        } catch (error) {
+             console.error("Firebase Initialization Error:", error);
+             document.getElementById('view-dashboard').innerHTML = `<div class="col-span-1 md:col-span-2 text-center p-10"><p class="text-rose-500 font-bold mb-2">Error cargando base de datos</p><p class="text-xs text-themeMuted">Asegúrate de que estás en un servidor http o github pages, no abriendo el archivo local directo.</p></div>`;
         }
 
-        function saveData() {
-            localStorage.setItem('auto_telemetry_data', JSON.stringify({
-                preferences: state.preferences,
-                profile: state.profile,
-                history: state.history
-            }));
-            applyPreferences(); // <-- CORRECCIÓN: Fuerza la actualización visual instantánea
-            renderHeader();
-            renderAll();
+        function listenToCloudData(uid) {
+            const docRef = doc(dbRef, 'users', uid, 'profile', 'data');
+            
+            // Creamos un documento por defecto si es la primera vez que entra
+            getDoc(docRef).then((docSnap) => {
+                 if (!docSnap.exists()) {
+                     setDoc(docRef, { ...state.profile, preferences: state.preferences });
+                 }
+            });
+
+            unsubscribeProfile = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    
+                    // Fusionamos cuidadosamente para no perder el modelo de auto
+                    state.profile = { 
+                        ...state.profile, 
+                        ...data,
+                        vehicle: { ...state.profile.vehicle, ...(data.vehicle || {}) },
+                        contact: { ...state.profile.contact, ...(data.contact || {}) },
+                        services: { ...state.profile.services, ...(data.services || {}) }
+                    };
+                    
+                    if (data.preferences) {
+                        state.preferences = data.preferences;
+                        applyPreferences();
+                    }
+
+                    renderHeader();
+                    renderDashboard();
+                }
+            });
+
+            // Escuchar el Historial
+            const historyColRef = collection(dbRef, 'users', uid, 'history');
+            unsubscribeHistory = onSnapshot(historyColRef, (snapshot) => {
+                const logs = [];
+                snapshot.forEach((docSnap) => logs.push({ id: docSnap.id, ...docSnap.data() }));
+                // Ordenar más reciente primero
+                logs.sort((a, b) => new Date(b.date) - new Date(a.date));
+                state.history = logs;
+                renderHistory();
+            });
         }
 
-        // --- LÓGICA DE INTERFAZ ---
+        async function saveProfileToCloud(partialData) {
+            if (!state.userId) return;
+            const docRef = doc(dbRef, 'users', state.userId, 'profile', 'data');
+            await setDoc(docRef, partialData, { merge: true });
+        }
+
+        async function saveLogToCloud(logData) {
+            if (!state.userId) return;
+            const historyColRef = collection(dbRef, 'users', state.userId, 'history');
+            await addDoc(historyColRef, logData);
+        }
+
         function applyPreferences() {
             const theme = THEMES[state.preferences.theme];
             const color = COLORS[state.preferences.color];
             
-            // Aplicar variables CSS en la raiz
             const root = document.documentElement;
             for (const [key, value] of Object.entries(theme.vars)) {
                 root.style.setProperty(key, value);
             }
             root.style.setProperty('--color-accent', color.rgb);
+
+            renderSettingsModal(); 
         }
 
         function renderHeader() {
@@ -391,7 +492,7 @@
             document.getElementById('input-global-km').value = state.profile.currentMileage || '';
             
             const alertInd = document.getElementById('alert-indicator');
-            if(state.profile.contact.wantsAlerts) alertInd.classList.remove('hidden');
+            if(state.profile.contact && state.profile.contact.wantsAlerts) alertInd.classList.remove('hidden');
             else alertInd.classList.add('hidden');
         }
 
@@ -457,15 +558,17 @@
                                 <div class="h-full rounded-full transition-all duration-500 ease-out ${progressColor}" style="width: ${task.progressPercent}%"></div>
                             </div>
                             <div class="flex justify-between text-xs mt-3">
-                                <span class="text-themeMuted font-mono">Último: ${task.lastKm === 0 ? '---' : task.lastKm.toLocaleString()}</span>
-                                <span class="font-mono ${task.status === 'overdue' ? 'text-rose-500' : 'text-accent'}">
+                                <span class="text-themeMuted font-mono bg-themePanel px-2 py-0.5 rounded border border-themeBorder">
+                                    Último: ${task.lastKm === 0 ? '---' : task.lastKm.toLocaleString()}
+                                </span>
+                                <span class="font-mono font-bold ${task.status === 'overdue' ? 'text-rose-500' : 'text-accent'}">
                                     ${task.remainingKm < 0 ? `-${Math.abs(task.remainingKm).toLocaleString()} km` : `+${task.remainingKm.toLocaleString()} km`}
                                 </span>
                             </div>
                         </div>
                     </div>
                     <div class="px-5 pb-5 pt-0">
-                        <button data-task-id="${task.id}" class="btn-open-log w-full py-2.5 px-4 bg-themeSubCard border border-themeBorder rounded-xl text-sm font-bold text-themeMain hover:bg-themePanel hover:text-accent transition-all flex items-center justify-center gap-2">
+                        <button data-task-id="${task.id}" class="btn-open-log w-full py-2.5 px-4 bg-themeSubCard border border-themeBorder rounded-xl text-sm font-bold text-themeMain hover:bg-themePanel hover:text-accent hover:border-accent/40 transition-all flex items-center justify-center gap-2 group-hover:shadow-glow">
                             <i class="ph ph-plus"></i> INIT REGISTRO
                         </button>
                     </div>
@@ -478,7 +581,9 @@
             if (state.history.length === 0) {
                 container.innerHTML = `
                     <div class="p-12 text-center text-themeMuted">
-                        <i class="ph ph-pen-nib text-4xl opacity-50 block mb-4"></i>
+                        <div class="w-16 h-16 rounded-full border border-dashed border-themeMuted/50 flex items-center justify-center mx-auto mb-4">
+                            <i class="ph ph-pen-nib text-2xl opacity-50"></i>
+                        </div>
                         <p class="font-mono text-sm uppercase tracking-widest">Base de datos vacía</p>
                     </div>`;
                 return;
@@ -511,7 +616,7 @@
 
                 const costHtml = log.cost ? `
                     <div class="mt-3 pt-3 border-t border-themeBorder sm:hidden">
-                        <span class="text-themeMuted text-xs mr-2 font-mono">Costo:</span>
+                        <span class="text-themeMuted text-xs mr-2 font-mono">Impacto:</span>
                         <span class="font-bold font-mono text-emerald-500">$${parseFloat(log.cost).toLocaleString()}</span>
                     </div>` : '';
 
@@ -547,24 +652,17 @@
             }).join('');
         }
 
-        function renderAll() {
-            renderDashboard();
-            renderHistory();
-            renderSettingsModal();
-        }
-
-        // --- RENDER MODALS ---
         function renderSettingsModal() {
             const themeContainer = document.getElementById('theme-selector');
             themeContainer.innerHTML = Object.entries(THEMES).map(([key, theme]) => `
-                <button type="button" class="btn-set-theme py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${state.preferences.theme === key ? 'border-accent bg-accent/10 text-accent shadow-glow' : 'border-themeBorder text-themeMuted hover:text-themeTitle'}" data-theme="${key}">
+                <button type="button" class="btn-set-theme py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${state.preferences.theme === key ? 'border-accent bg-accent/10 text-accent shadow-glow' : 'border-themeBorder text-themeMuted hover:text-themeTitle hover:border-accent/30'}" data-theme="${key}">
                     ${theme.name}
                 </button>
             `).join('');
 
             const colorContainer = document.getElementById('color-selector');
             colorContainer.innerHTML = Object.entries(COLORS).map(([key, color]) => `
-                <button type="button" class="btn-set-color w-10 h-10 rounded-full transition-all duration-300 ${state.preferences.color === key ? 'scale-125 shadow-md border-2 border-white z-10' : 'hover:scale-110 opacity-60 hover:opacity-100'}" style="background-color: ${color.hex}" data-color="${key}"></button>
+                <button type="button" class="btn-set-color w-10 h-10 rounded-full transition-all duration-300 ${state.preferences.color === key ? 'scale-125 shadow-[0_0_20px_rgb(var(--color-accent))] border-2 border-white z-10' : 'hover:scale-110 opacity-60 hover:opacity-100'}" style="background-color: ${color.hex}" data-color="${key}"></button>
             `).join('');
         }
 
@@ -597,13 +695,11 @@
             setTimeout(() => modal.classList.add('hidden'), 200);
         }
 
-        // --- EVENT LISTENERS ---
+        // --- EVENT LISTENERS E INTERACTIVIDAD ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadData();
 
             // Tabs
             document.getElementById('tab-btn-dashboard').addEventListener('click', () => {
-                state.activeTab = 'dashboard';
                 document.getElementById('view-dashboard').classList.remove('hidden');
                 document.getElementById('view-history').classList.add('hidden');
                 document.getElementById('tab-btn-dashboard').className = "flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 bg-themePanel text-accent shadow-sm border border-themeBorder";
@@ -611,56 +707,70 @@
             });
 
             document.getElementById('tab-btn-history').addEventListener('click', () => {
-                state.activeTab = 'history';
                 document.getElementById('view-dashboard').classList.add('hidden');
                 document.getElementById('view-history').classList.remove('hidden');
                 document.getElementById('tab-btn-history').className = "flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 bg-themePanel text-accent shadow-sm border border-themeBorder";
                 document.getElementById('tab-btn-dashboard').className = "flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 text-themeMuted hover:text-themeTitle";
             });
 
-            // Global Odometer Update
+            // Guardar Kilometraje a la Nube
             document.getElementById('input-global-km').addEventListener('change', (e) => {
                 const val = parseInt(e.target.value);
-                state.profile.currentMileage = isNaN(val) ? 0 : val;
-                saveData();
+                const newMileage = isNaN(val) ? 0 : val;
+                saveProfileToCloud({ currentMileage: newMileage });
             });
 
-            // Modals Openers
-            document.getElementById('btn-open-settings').addEventListener('click', () => { renderSettingsModal(); openModal('modal-settings'); });
-            document.getElementById('btn-open-profile').addEventListener('click', () => { renderProfileModal(); openModal('modal-profile'); });
+            // Abrir Modales
+            document.getElementById('btn-open-settings').addEventListener('click', () => { 
+                renderSettingsModal(); openModal('modal-settings'); 
+            });
+            
+            document.getElementById('btn-open-profile').addEventListener('click', () => { 
+                renderProfileModal(); openModal('modal-profile'); 
+            });
+            
             document.getElementById('btn-open-alerts').addEventListener('click', () => { 
-                document.getElementById('input-wants-alerts').checked = state.profile.contact.wantsAlerts;
-                document.getElementById('input-email').value = state.profile.contact.email;
-                document.getElementById('input-phone').value = state.profile.contact.phone;
-                document.getElementById('alerts-fields').style.display = state.profile.contact.wantsAlerts ? 'block' : 'none';
+                document.getElementById('input-wants-alerts').checked = state.profile.contact?.wantsAlerts || false;
+                document.getElementById('input-email').value = state.profile.contact?.email || '';
+                document.getElementById('input-phone').value = state.profile.contact?.phone || '';
+                document.getElementById('alerts-fields').style.display = (state.profile.contact?.wantsAlerts) ? 'block' : 'none';
                 openModal('modal-alerts'); 
             });
 
-            // Alerts Logic
+            // Switch Alertas
             document.getElementById('input-wants-alerts').addEventListener('change', (e) => {
                 document.getElementById('alerts-fields').style.display = e.target.checked ? 'block' : 'none';
             });
 
+            // Guardar Alertas
             document.getElementById('form-alerts').addEventListener('submit', (e) => {
                 e.preventDefault();
-                state.profile.contact = {
+                const btn = document.getElementById('btn-save-alerts');
+                btn.innerHTML = `<i class="ph ph-spinner animate-spin"></i> GUARDANDO...`;
+                
+                const newContact = {
                     wantsAlerts: document.getElementById('input-wants-alerts').checked,
                     email: document.getElementById('input-email').value,
                     phone: document.getElementById('input-phone').value
                 };
-                saveData();
-                closeModal('modal-alerts');
+
+                saveProfileToCloud({ contact: newContact }).then(() => {
+                    closeModal('modal-alerts');
+                    btn.innerHTML = `GUARDAR CONFIGURACIÓN`;
+                });
             });
 
-            // Close Modals
+            // Cerrar Modales
             document.querySelectorAll('.btn-close-modal').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     closeModal(e.target.closest('.fixed').id);
                 });
             });
 
-            // Event Delegation para botones dinámicos (Registrar, Expander Historial, Temas)
+            // Eventos Dinámicos (Delegation)
             document.addEventListener('click', (e) => {
+                
+                // Botón "Registrar" de una Tarea
                 const btnLog = e.target.closest('.btn-open-log');
                 if (btnLog) {
                     const taskId = btnLog.dataset.taskId;
@@ -706,44 +816,62 @@
                     openModal('modal-log');
                 }
 
+                // Expandir Log del Historial
                 const btnToggleLog = e.target.closest('.btn-toggle-log');
                 if (btnToggleLog) {
-                    const id = parseInt(btnToggleLog.dataset.logId);
+                    const id = btnToggleLog.dataset.logId;
                     state.expandedLogId = state.expandedLogId === id ? null : id;
                     renderHistory();
                 }
 
+                // Cambiar Tema Visual
                 const btnTheme = e.target.closest('.btn-set-theme');
                 if (btnTheme) {
                     state.preferences.theme = btnTheme.dataset.theme;
-                    saveData();
+                    applyPreferences(); 
+                    saveProfileToCloud({ preferences: state.preferences }); 
                 }
 
+                // Cambiar Color Holográfico
                 const btnColor = e.target.closest('.btn-set-color');
                 if (btnColor) {
                     state.preferences.color = btnColor.dataset.color;
-                    saveData();
+                    applyPreferences(); 
+                    saveProfileToCloud({ preferences: state.preferences }); 
                 }
             });
 
-            // Forms Submit
+            // Guardar Perfil de Vehículo a la Nube
             document.getElementById('form-profile').addEventListener('submit', (e) => {
                 e.preventDefault();
-                state.profile.vehicle.make = document.getElementById('select-make').value;
-                state.profile.vehicle.model = document.getElementById('select-model').value;
-                state.profile.vehicle.year = document.getElementById('select-year').value;
-                saveData();
-                closeModal('modal-profile');
+                const btn = document.getElementById('btn-save-profile');
+                btn.innerHTML = `<i class="ph ph-spinner animate-spin text-xl"></i> GUARDANDO...`;
+                
+                const newVehicle = {
+                    make: document.getElementById('select-make').value,
+                    model: document.getElementById('select-model').value,
+                    year: document.getElementById('select-year').value
+                };
+
+                saveProfileToCloud({ vehicle: newVehicle }).then(() => {
+                    closeModal('modal-profile');
+                    btn.innerHTML = `GUARDAR EN NUBE <i class="ph ph-cloud-arrow-up text-lg"></i>`;
+                });
             });
 
+            // Auto-rellenar modelos al cambiar la marca
             document.getElementById('select-make').addEventListener('change', (e) => {
                 const make = e.target.value;
                 const models = CAR_DATABASE[make] || [];
                 document.getElementById('select-model').innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
             });
 
+            // Guardar Servicio (Log de Tarea) a la Nube
             document.getElementById('form-log').addEventListener('submit', (e) => {
                 e.preventDefault();
+                const btn = document.getElementById('btn-save-log');
+                btn.innerHTML = `<i class="ph ph-spinner animate-spin text-xl"></i> ENVIANDO...`;
+
                 const taskId = document.getElementById('log-task-id').value;
                 const taskDef = MAINTENANCE_TASKS.find(t => t.id === taskId);
                 const km = parseInt(document.getElementById('log-km').value);
@@ -755,8 +883,8 @@
                     details[input.dataset.fieldId] = input.value;
                 });
 
+                // 1. Guardar Log
                 const newLog = {
-                    id: Date.now(),
                     taskId: taskId,
                     taskName: taskDef.name,
                     km: km,
@@ -767,16 +895,17 @@
                     timestamp: new Date().toISOString()
                 };
 
-                state.profile.services[taskId] = km;
-                if(km > state.profile.currentMileage) state.profile.currentMileage = km;
-                
-                state.history.push(newLog);
-                state.history.sort((a, b) => new Date(b.date) - new Date(a.date));
-                
-                saveData();
-                closeModal('modal-log');
+                saveLogToCloud(newLog).then(() => {
+                    // 2. Actualizar km del servicio en el Perfil Maestro
+                    const newServices = { ...state.profile.services, [taskId]: km };
+                    const newMileage = km > state.profile.currentMileage ? km : state.profile.currentMileage;
+                    
+                    saveProfileToCloud({ services: newServices, currentMileage: newMileage }).then(() => {
+                        closeModal('modal-log');
+                        btn.innerHTML = `<i class="ph ph-floppy-disk text-lg"></i> ENVIAR A NUBE`;
+                    });
+                });
             });
-
         });
     </script>
 </body>
