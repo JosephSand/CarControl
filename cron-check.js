@@ -8,30 +8,25 @@ admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
 async function runCheck() {
-  console.log('--- BUSCANDO PERFILES EN "profile" ---');
-  
-  // collectionGroup busca en CUALQUIER lugar que tenga una carpeta llamada 'profile'
+  console.log('--- BUSCANDO PERFILES PARA ALERTA ÚNICA ---');
   const snapshot = await db.collectionGroup('profile').get();
   
-  if (snapshot.empty) {
-    console.log('No encontré ninguna carpeta "profile".');
-    return;
-  }
+  let correoEnviado = false; // Candado para enviar solo un correo
 
   for (const doc of snapshot.docs) {
-    // Si el documento se llama "data" como definiste en tu App
     if (doc.id === 'data') {
       const userData = doc.data();
-      console.log('Usuario encontrado con email:', userData.contact?.email);
       
-      if (userData.contact?.email === 'elunam.esoj7@gmail.com') {
+      // Si encontramos tu email y aún no hemos enviado el correo
+      if (userData.contact?.email === 'elunam.esoj7@gmail.com' && !correoEnviado) {
         await resend.emails.send({
           from: 'Asistente <onboarding@resend.dev>',
           to: userData.contact.email,
-          subject: '¡Reporte Exitoso!',
-          html: '<p>El robot finalmente ha encontrado tus datos navegando por la colección "users"!</p>'
+          subject: 'Reporte de Mantenimiento',
+          html: '<p>¡Sistema sincronizado! Tus alertas están funcionando correctamente.</p>'
         });
-        console.log('Correo enviado a:', userData.contact.email);
+        console.log('Correo enviado exitosamente a:', userData.contact.email);
+        correoEnviado = true; // Bloqueamos envíos futuros en esta ejecución
       }
     }
   }
