@@ -8,21 +8,29 @@ admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
 async function runCheck() {
-  console.log('--- PRUEBA DE PÁNICO: ENVIANDO CORREO FORZADO ---');
+  console.log('--- BUSCANDO DATOS EN FIREBASE ---');
   
-  // Cambia ESTE CORREO por el tuyo verificado en Resend
-  const MI_CORREO = 'TU_EMAIL_VERIFICADO_DE_RESEND@gmail.com'; 
+  // Buscamos tus usuarios
+  const snapshot = await db.collection('usuarios').get();
 
-  try {
-    await resend.emails.send({
-      from: 'Asistente <onboarding@resend.dev>',
-      to: MI_CORREO,
-      subject: 'PRUEBA DE CONEXIÓN',
-      html: '<h1>El sistema está funcionando correctamente.</h1>'
-    });
-    console.log('Correo de prueba enviado con éxito a:', MI_CORREO);
-  } catch (e) {
-    console.error('ERROR AL ENVIAR:', e);
+  for (const userDoc of snapshot.docs) {
+    const profileSnap = await userDoc.ref.collection('profile').doc('data').get();
+    
+    if (profileSnap.exists) {
+      const userData = profileSnap.data();
+      console.log('Usuario detectado:', userData.contact?.email);
+      
+      // Aquí el robot revisa si hay alertas pendientes
+      if (userData.contact?.email === 'elunam.esoj7@gmail.com') {
+        await resend.emails.send({
+          from: 'Asistente <onboarding@resend.dev>',
+          to: userData.contact.email,
+          subject: 'Reporte de Mantenimiento',
+          html: '<p>Tu sistema de telemetría está conectado y funcionando correctamente con tus datos reales.</p>'
+        });
+        console.log('Correo real enviado a:', userData.contact.email);
+      }
+    }
   }
 }
 
