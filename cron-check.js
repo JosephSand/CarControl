@@ -3,19 +3,26 @@ const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
-async function runCheck() {
-  console.log('--- BUSCANDO PERFILES ---');
-  const usuariosSnapshot = await db.collection('usuarios').get();
+async function diagnosticoFinal() {
+  console.log('--- LEYENDO DOCUMENTOS DIRECTOS DE "usuarios" ---');
+  const snapshot = await db.collection('usuarios').get();
 
-  for (const userDoc of usuariosSnapshot.docs) {
-    const profileSnap = await userDoc.ref.collection('profile').doc('data').get();
+  for (const doc of snapshot.docs) {
+    console.log('Documento ID:', doc.id);
+    const data = doc.data();
+    console.log('¿Qué hay dentro?:', JSON.stringify(data));
     
-    if (profileSnap.exists) {
-      const data = profileSnap.data();
-      console.log('ID:', userDoc.id);
-      console.log('Contenido completo del perfil:', JSON.stringify(data)); // <--- ¡AQUÍ ESTÁ LA CLAVE!
+    // También listamos por si acaso las subcolecciones, para ver si tienen otro nombre
+    const subcols = await doc.ref.listCollections();
+    for (let sub of subcols) {
+        console.log('  -> Encontré subcolección:', sub.id);
+        const subdocs = await sub.listDocuments();
+        if(subdocs.length > 0) {
+            const snap = await subdocs[0].get();
+            console.log(`     -> Ejemplo de doc en subcolección: ${snap.id}`);
+        }
     }
   }
 }
 
-runCheck().catch(console.error);
+diagnosticoFinal().catch(console.error);
