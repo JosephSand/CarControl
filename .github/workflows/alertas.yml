@@ -1,27 +1,22 @@
 name: Alertas Diarias de Mantenimiento
 
 on:
-  schedule:
-    # Corre todos los días automáticamente (9:00 AM hora de El Salvador / CST)
-    - cron: '0 15 * * *' 
-  workflow_dispatch: # Permite ejecución manual de prueba
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  run-alerts:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Clonar repositorio
-        uses: actions/checkout@v4
-
-      - name: Configurar Node.js
+      - uses: actions/checkout@v4
+      - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-
-      - name: Instalar dependencias
-        run: npm install firebase-admin resend
-
-      - name: Ejecutar revisión de mantenimientos
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install resend twilio firebase-admin
+      - name: Run Alert Script
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
